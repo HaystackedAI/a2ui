@@ -12,6 +12,44 @@
 
 ## 0. STATUS / WHERE WE ARE
 
+> ✅ **MILESTONE (2026-10-02): RESTAURANT SAMPLE FULLY CLONED + WORKING (user tested, all works).**
+> Full LLM loop live & deployed: browser (a2ui_react :5173) → gateway a2ui-backend.fastapicloud.dev
+> (FastAPI, A2A client) → agent a2ui-agent.fastapicloud.dev (Strands + Groq gpt-oss-120b, A2A
+> server) → A2UI → SSE → rendered. search→list→book→form→submit→confirm all LLM-generated.
+> TARGET (clone sample's functions on our stack) = MET. Deferred to AWS: validation/retry
+> hardening. Skipped by choice: two-column list + chrome. Optional cleanups pending (dead
+> gateway screens/datasource/commented handle; AGENT_PUBLIC_URL; move GROQ key to agent secret;
+> drop smoke.py). NEXT per user: either cleanups/close-out OR the Final Goal (AWS AgentCore +
+> Gateway MCP). (Details of the whole build are in §0.5 and the long progress log below.)
+
+### 🫱 HANDOVER — RESUME HERE (session paused 2026-10-02, user off)
+
+**Where we are:** Restaurant A2UI sample FULLY CLONED, deployed, user-tested, working. Target met.
+```
+browser a2ui_react (:5173, `npm run dev`)  --config.ts A2A_URL-->  gateway a2ui-backend.fastapicloud.dev/a2a
+   gateway a2ui_fastapi = A2A CLIENT (agent_client.ask_agent + main.py to_query/_part/ /a2a)
+      --a2a message/stream-->  agent a2ui-agent.fastapicloud.dev = A2A SERVER
+         agent a2ui_agent = Strands Agent (OpenAIModel→Groq `openai/gpt-oss-120b`) + get_restaurants tool
+         + system prompt (examples/v0_9/*.json, now COMPLETE 3-msg screens); main.py=A2AServer.to_fastapi_app()
+```
+Repos (all under B:\a2ui2, git remote HaystackedAI/a2ui, FastAPI Cloud CI/CD on push):
+- `a2ui_react` — React/Vite client (DONE). config.ts: A2A_URL=gateway, A2UI_AGENT_URL=agent.
+- `a2ui_fastapi` — GATEWAY (A2A client). Has DEAD code: screens/ + datasource/ + commented handle() (safe to delete). GROQ_API_KEY sits in its .env (should move to agent).
+- `a2ui_agent` — Strands/Groq AGENT (A2A server). Key files agent/{tools,prompt,brain}.py, examples/v0_9/*.json, main.py. smoke.py = throwaway.
+Secrets: GROQ_API_KEY (agent uses it) — set as FastAPI Cloud secret on a2ui-agent; locally in a2ui_fastapi/.env. NEVER commit (.env gitignored).
+
+**Open / optional (none blocking):** delete gateway dead code; set AGENT_PUBLIC_URL=https://a2ui-agent.fastapicloud.dev on agent + redeploy (then drop the card.url override in agent_client); move GROQ key to a2ui_agent/.env. Validation/retry hardening DEFERRED to AWS.
+
+**NEXT = the user's REAL AWS project ≈ the `rizzcharts` sample.** User's project: query **Snowflake** → render **charts** (bar/pie/…) via A2UI, on **AWS AgentCore + Gateway MCP**. `rizzcharts` (b:/a2ui/samples/community/agent/adk/rizzcharts) is the blueprint: "dashboard via a CUSTOM catalog, hosted as an A2A server." It shows:
+- CUSTOM CATALOG def `catalog_schemas/0.9/rizzcharts_catalog_definition.json` — basic components + extras incl. a **`Chart`** component (`type`: pie|doughnut [extend to bar/line]; `title`; `chartData`: array OR data-model `{path}` binding) + Canvas, GoogleMap, Tabs, Modal, Slider…
+- examples `examples/rizzcharts_catalog/0.9/{chart,map}.json` (custom) AND `examples/standard_catalog/...` (same, basic-only fallback). Agents in python/ + java/ + kotlin/.
+Your Snowflake→charts project = restaurant clone + TWO new custom pieces:
+  1. AGENT: Snowflake-query tool (instead of get_restaurants) + custom catalog schema + Chart examples; emit Chart, fill chartData via updateDataModel.
+  2. RENDERER (the piece the restaurant clone SKIPPED): implement the custom `Chart` component in the React client — map "Chart"→Recharts/Chart.js — i.e. a CUSTOM CATALOG on the client (the `src/catalog/` seam flagged earlier). basicCatalog has NO charts.
+Then host agent on AgentCore, data tool via Gateway MCP.
+Immediate next action when resuming: dig into rizzcharts RENDERER side (how a custom `Chart` component is implemented + registered in a client catalog) — that's the main new thing to build. (Or finish close-out cleanups first.)
+
+
 - Finished: researched A2UI online, analyzed the React sample, corrected earlier wrong
   assumptions, locked in architecture + decisions.
 - **Scope/sequencing (IMPORTANT — clarified by user). This is STAGED; do NOT jump to the
@@ -276,9 +314,9 @@
   COMPLETE 3-message screens.) FIX: appended a complete `updateDataModel` message (correct
   surfaceId + representative value) to all three example files. Verified local brain: confirmation
   3/3 valid now. NEEDS AGENT REDEPLOY (push a2ui_agent) for the browser to get it.
-  OPTIONAL HARDENING (sample had it via a2ui-agent-sdk, we dropped it): add structural/schema
-  validation + retry in brain.generate() (check each msg has exactly 1 op + surfaceId) so bad
-  LLM output is caught server-side, not at the browser.
+  HARDENING (validation+retry in brain.generate): DEFERRED to AWS/AgentCore phase (user: "we'll
+  strengthen this in aws, not here"). Do NOT add it in this clone. The complete-examples fix is
+  enough for the demo.
   LONG-TERM (not target): AgentCore (Strands is the on-ramp) + Gateway MCP (get_restaurants → MCP tool).
   --- original Phase C plan (now done) ---
   === PHASE C (gateway = A2A client) ORIG PLAN ===: a2ui_fastapi /a2a must: (1) receive browser
