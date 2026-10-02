@@ -47,9 +47,11 @@
   A2A-shaped parts
   (`data: [{kind:'data', data:<a2ui msg>, mimeType:'application/a2ui+json'}]\n\n`) — exactly
   what `client.ts` already parses, so NO @a2a-js/sdk needed. CORS enabled (client is
-  cross-origin). Client posts to `import.meta.env.VITE_A2A_URL ?? '/a2a'`; set
-  `VITE_A2A_URL=https://a2ui-61cd4406.fastapicloud.dev/a2a` (or localhost:8000 for a faster
-  inner loop). Grow: hardcoded restaurant JSON → interactive turns → real agent +
+  cross-origin). Backend URL lives in `a2ui_react/src/config.ts` as `export const A2A_URL`
+  (committed, non-secret — the React analog of Python config.py; user chose this over Vite
+  .env/import.meta.env, which are reserved for secrets & per-env build values). client.ts
+  imports A2A_URL and fetches it directly. NO .env file.
+  Grow: hardcoded restaurant JSON → interactive turns → real agent +
   **AWS AgentCore** + **Gateway MCP**. (Deploy target is FastAPI Cloud, not Fly.)
 - **Repo layout:** client = `B:\a2ui2\a2ui_react` (Vite React-TS, DONE/scaffolded,
   blank app runs); agent (later) = `B:\a2ui2\agent` (planned).
@@ -85,11 +87,20 @@
   minimal search form (onSubmit only — NO per-keystroke send), spinner, error, surfaces map.
   Inline `config={title,placeholder}`. `tsc -b` clean. Clicking Send now POSTs /a2a → 404
   until the dev middleware exists (expected). Client-side loop is COMPLETE.
-  Next (REVISED) = add the `/a2a` endpoint to `B:\a2ui2\a2ui_fastapi\main.py` (B1 scaffold
-  is DONE — project exists + deployed). Step B2a: add CORSMiddleware + `POST /a2a` returning
-  a StreamingResponse (media_type text/event-stream) that yields ONE event
-  `data: <json parts>\n\n` carrying the 3-message "Hello from FastAPI" TOY surface; deploy;
-  curl-verify. Step B2b: swap toy for the full restaurant-list messages (shapes from sample
+  Step B2a DONE + DEPLOYED + VERIFIED: `POST /a2a` in `a2ui_fastapi/main.py` — CORSMiddleware
+  (allow_origins=["*"]), reads+logs body, returns StreamingResponse(media_type
+  text/event-stream) yielding ONE event `data: [3 parts]\n\n`; each part
+  `{kind:'data', data:<a2ui msg>, mimeType:'application/a2ui+json'}` carrying the "Hello from
+  FastAPI" toy (createSurface/updateComponents: Column+h1 Text bound /title/updateDataModel).
+  Curl confirmed: HTTP 200, Content-Type text/event-stream, ACAO:* on POST + OPTIONS
+  preflight (allows POST). helper `_part()`, `hello_surface()`. Root `/` still Hello World.
+  Step B3 DONE (client wiring): `a2ui_react/src/config.ts` exports `A2A_URL =
+  'https://a2ui-61cd4406.fastapicloud.dev/a2a'`; client.ts imports it + `fetch(A2A_URL,...)`.
+  `.env` deleted. tsc clean. (Had a false start: user's `.env` used non-VITE_ name + missing
+  /a2a path → import.meta.env undefined → fetched localhost:5173/a2a → 404; replaced by
+  config.ts.) Testing: `npm run dev` (:5173), type query, Send → "Hello from FastAPI" renders
+  over the network. Then Step B2b: swap toy for
+  the full restaurant-list messages (shapes from sample
   `src/mock/restaurantMessages.ts`). Step B3: client — add `.env` `VITE_A2A_URL=<cloud>/a2a`,
   change client.ts `/a2a` → `import.meta.env.VITE_A2A_URL ?? '/a2a'`; run client; verify
   query → surface renders over the network. Step B4: handle `book_restaurant` /

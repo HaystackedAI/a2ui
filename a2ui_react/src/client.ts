@@ -1,4 +1,5 @@
 import type { A2uiMessage, A2uiClientMessage } from '@a2ui/web_core/v0_9'
+import { A2A_URL } from './config'
 
 // One "part" of an A2A streamed message. We only care about kind:'data'
 // (an A2UI message) and kind:'error'. 'text' parts are ignored here.
@@ -19,7 +20,7 @@ export class A2UIClient {
     ): Promise<A2uiMessage[]> {
         const body = typeof message === 'string' ? message : JSON.stringify(message)
 
-        const response = await fetch('/a2a', { method: 'POST', body })
+        const response = await fetch(A2A_URL, { method: 'POST', body })
 
         // A proxy error page is often HTML, not JSON — surface it clearly
         // instead of a confusing JSON parse error below.

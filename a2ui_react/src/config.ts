@@ -1,0 +1,7 @@
+// App configuration (non-secret, committed with the code — the React analog
+// of a Python config.py). Secrets or per-environment build values would go in
+// Vite's import.meta.env / .env instead.
+
+// Deployed FastAPI backend (A2A/A2UI endpoint). Backend has no localhost — we
+// always talk to the deployed service.
+export const A2A_URL = 'https://a2ui-61cd4406.fastapicloud.dev/a2a'
