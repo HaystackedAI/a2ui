@@ -212,6 +212,35 @@
   `uv add 'strands-agents[gemini,a2a]'`. Next: build Strands agent (system prompt = component
   rules + screens/v0_9/*.json examples + selection rules; get_restaurants tool; parse/validate
   +retry) + make /a2a the gateway that bridges dumb browser ⇄ A2A agent.
+  === BUILD PROGRESS (a2ui_agent, Strands) ===
+  Verified Strands API (installed, no fastapi conflict): `from strands import Agent, tool`;
+  `from strands.models.gemini import GeminiModel` → GeminiModel(model_id=..., client_args=
+  {"api_key": ...}); run via `await agent.invoke_async(query)`; A2A exposure via
+  `from strands.multiagent.a2a import A2AServer` → `A2AServer(agent).to_fastapi_app()` (serves
+  agent card + message/stream; emits output as A2A TEXT parts).
+  MODEL ID = **gemini-3.6-flash** (standard across B:\too/toocore + B:\div; NOT 2.5 [deprecated]).
+  SMOKE TEST PASSED (a2ui_agent/smoke.py — throwaway): Strands+Gemini+key replied OK. Key loaded
+  from a2ui_fastapi/.env for tests (TODO: move key to a2ui_agent/.env + FastAPI Cloud secret).
+  Tests/checks: CLAUDE runs them (user: "all the test/check, you do").
+  Agent I/O design: agent is pure Strands text-in → A2UI-JSON-out (knows nothing of browser);
+  action→text-query conversion lives in the GATEWAY (Phase C), like sample's agent_executor.
+  Few-shot examples = our screens/v0_9/*.json (same format as sample examples/0.9).
+  PROVIDER SWITCHED to **Groq** (user: "change to groq", per B:\div\divcore): Gemini key was
+  FREE-TIER (20 req/day) and got exhausted fast (each generate() = tool-call + gen + retry =
+  several reqs) → blocked. Groq = free, fast, higher limits, OpenAI-compatible. brain.py now
+  uses `from strands.models.openai import OpenAIModel`, MODEL_ID="openai/gpt-oss-120b",
+  GROQ_BASE_URL="https://api.groq.com/openai/v1", client_args={api_key: GROQ_API_KEY, base_url}.
+  Needed `uv add openai` (the [gemini] extra didn't include the openai client). GROQ_API_KEY
+  currently in a2ui_fastapi/.env (works; TODO move to a2ui_agent/.env + agent's FastAPI Cloud
+  secret). smoke.py is throwaway + still references Gemini (ignore/delete).
+  ===> PHASE A (agent brain) DONE + TESTED: a2ui_agent/agent/{__init__,tools,prompt,brain}.py.
+  tools.get_restaurants (@tool, static datasource), prompt.SYSTEM_PROMPT (rules + 3 screen
+  examples + data-model shapes), brain.build_agent()/generate(query) (OpenAIModel→Groq, tool,
+  parse A2UI JSON + 1 retry). Test (CLAUDE ran): list→default(5 items), book→booking-form,
+  submit→confirmation, all valid 3-message A2UI. <===
+  NEXT = PHASE B: expose agent over A2A — a2ui_agent/main.py = `A2AServer(build_agent())
+  .to_fastapi_app()`; deploy (git push CI/CD). THEN PHASE C: a2ui_fastapi gateway calls the
+  agent over A2A, converts browser action→text-query (like sample agent_executor), streams SSE.
   (Pending/optional, not blocking: frontend catalog seam src/catalog/index.ts re-exporting
   basicCatalog.) STAGE 2 "other samples" (custom-components-example, community/mcp/*, other
   client frameworks) is SEPARATE from this target.

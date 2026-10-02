@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.142.2",
+    "openai>=3.24.0",
     "strands-agents[a2a,gemini]>=1.57.2",
 ]
 

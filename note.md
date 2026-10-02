@@ -63,3 +63,32 @@ browser (dumb POST+SSE)  ──►  FastAPI /a2a  = A2A GATEWAY (prod heir of th
 - Browser: unchanged, dumb, correct.
 - /a2a: the gateway — translates browser ⇄ A2A, exactly like the sample's middleware did, but as a real backend.
 - Agent: Strands with [a2a], so the gateway↔agent boundary is real A2A from day one (not a shortcut). When the agent moves to AgentCore, only the gateway's target URL changes.
+
+
+Verified Strands API
+
+- Model: from strands.models.gemini import GeminiModel → GeminiModel(model_id="gemini-2.5-flash", client_args={"api_key": ...})
+- Agent: from strands import Agent, tool → Agent(model=..., tools=[...], system_prompt=..., name=..., description=...), run via await agent.invoke_async(query)
+- A2A exposure: from strands.multiagent.a2a import A2AServer → A2AServer(agent).to_fastapi_app() gives a FastAPI app serving the agent over A2A (agent card + message/stream). Its executor emits the agent's output as A2A text parts.
+
+Data flow (two containers)
+
+browser (dumb POST+SSE) → GATEWAY a2ui_fastapi /a2a
+    → A2A call → AGENT a2ui_agent (Strands+Gemini) returns A2UI JSON (as A2A text)
+    ← gateway parses it, wraps as a2ui data parts, streams SSE → browser
+So the agent is the brain (query → A2UI JSON, using our screens as examples); the gateway stays the transport adapter (A2A client ⇄ browser SSE). The A2UI-specific wrapping for the browser lives in the gateway (where our _part() already is).
+
+Structural moves this implies
+
+- screens/v0_9/*.json + datasource/ move to a2ui_agent (the agent generates UI, so the examples + data belong there). The gateway keeps no screens/data/LLM.
+- a2ui_fastapi slims to: browser /a2a + A2A client to the agent.
+
+Staged plan
+
+- A — Agent brain (the valuable, hard part): Strands Agent (Gemini + get_restaurants tool + system prompt = component rules + our screen examples + selection rules) that returns valid A2UI JSON for a query/action. Test in isolation.
+- B — Expose over A2A: A2AServer(agent).to_fastapi_app() in a2ui_agent; deploy.
+- C — Wire the gateway: a2ui_fastapi calls the agent over A2A, streams SSE.
+
+browser (dumb POST+SSE)
+   → a2ui_fastapi  = A2A CLIENT  (Phase C)   ─ message/stream ─►   a2ui_agent = A2A SERVER (Phase B)
+   ◄──────── SSE ────────                     ◄─ streamed parts ──   (Strands + Groq)
