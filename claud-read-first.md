@@ -30,10 +30,18 @@
   Final-goal backend = FastAPI (uv) + AgentCore + Gateway MCP — **DEFERRED, not step 1.**
 - **Repo layout:** client = `B:\a2ui2\a2ui_react` (Vite React-TS, DONE/scaffolded,
   blank app runs); agent (later) = `B:\a2ui2\agent` (planned).
-- Progress: Stage 1 / Phase 1 step 1 DONE (blank Vite React-TS app runs). Next = install
-  the `@a2ui/*` packages into `a2ui_react` and confirm they resolve (Phase 1 step 2).
-- Teaching mode: **the user writes the code; Claude explains and unblocks.** Do NOT
-  implement for them unless they ask. User is doing this to learn.
+- Progress: Phase 1 steps 1-3 DONE. Step 1: blank Vite React-TS app runs. Step 2:
+  installed `@a2ui/react@0.12.0`, `@a2ui/web_core@0.12.0`, `@a2ui/markdown-it@0.2.0`
+  (confirms "it's just npm"); removed a stray top-level `zod@4` (see §7). Step 3: added
+  `import {basicCatalog} from '@a2ui/react/v0_9'` to `App.tsx` + `vite build` succeeded →
+  versioned subpath import resolves/bundles standalone (bundle ~491KB). That import is
+  THROWAWAY (Step 4 replaces App.tsx). Next = Step 4: build the real shell —
+  `MessageProcessor` + render first hardcoded A2UI surface.
+- **Working agreement (confirmed by user): "you teach, I work, you check."** The loop:
+  Claude explains the next tiny step → the USER writes the code → Claude verifies
+  (reads files, runs builds/lint/tests to check). Claude does NOT implement the learning
+  code unless the user explicitly says "u do X" (fine for throwaway/verification bits like
+  a smoke-test build). Keep steps TINY and verify each before moving on. User is learning.
 
 ---
 
@@ -249,6 +257,12 @@ FastAPI (Vite dev proxy or direct with CORS).
 
 ## 7. GOTCHAS / NOTES
 
+- **ZOD VERSION TRAP (verified 2026-10-02):** A2UI 0.12 pins **zod `^3.25.76`** (it ships
+  its own nested `zod@3.25.76` under `@a2ui/react` and `@a2ui/web_core`). The sample's
+  `package.json` declares **no** zod. Do NOT run `npm install zod` — npm grabs zod **v4**
+  (wrong major, breaking changes) at top level and creates a latent conflict. If our own
+  code ever needs zod, pin `zod@^3.25.76`. (We hit this: removed the stray top-level
+  zod@4; A2UI's own zod@3 is all that's needed.)
 - Don't adopt v1.0 naming (`surfaceProperties`) yet — we're on v0.9.
 - The browser transport is just `fetch` + SSE parsing; `@a2a-js/sdk` was only in the
   Node dev middleware. If the user wants the browser to speak A2A fully, that's a choice,
