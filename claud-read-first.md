@@ -14,11 +14,20 @@
 
 - Finished: researched A2UI online, analyzed the React sample, corrected earlier wrong
   assumptions, locked in architecture + decisions.
-- **Decisions locked:** Transport = **A2A**. No mock mode. **npm** (not yarn).
-  **Single standalone React project** (no monorepo). Backend = **FastAPI managed by uv**.
-  Future backend brain = **AWS AgentCore agents + Gateway MCP**.
-- Next action: **Phase 1** — scaffold a bare standalone Vite React 19 client that
-  `npm install`s the A2UI packages (see §6).
+- **Scope/sequencing (IMPORTANT — clarified by user). This is STAGED; do NOT jump to the
+  final stack:**
+  1. **NOW: faithfully rebuild the restaurant SAMPLE in `B:\a2ui2`.** Mirror the sample's
+     tooling 1:1 — "whatever the sample uses, we use" — and **reuse the EXISTING Python
+     agent**. Only deliberate deviations: **npm** (not yarn) and **standalone** (no
+     monorepo workspace). Ground every choice in this doc / the sample.
+  2. Then possibly rebuild a couple of OTHER samples to learn more.
+  3. ONLY AFTER that, migrate toward the **final goal**: own **FastAPI/uv** backend +
+     **AWS AgentCore** agents + **Gateway MCP**.
+- **Decisions locked:** Transport = **A2A** (the sample uses it, so the rebuild uses it).
+  No mock mode. **npm** (not yarn). **Single standalone React project** (no monorepo).
+  Final-goal backend = FastAPI (uv) + AgentCore + Gateway MCP — **DEFERRED, not step 1.**
+- Next action: **Stage 1 / Phase 1** — scaffold the standalone Vite React 19 client,
+  wired to the existing restaurant agent (see §6).
 - Teaching mode: **the user writes the code; Claude explains and unblocks.** Do NOT
   implement for them unless they ask. User is doing this to learn.
 
@@ -185,30 +194,44 @@ loop, but we're optimizing for the AgentCore target.)
 
 ---
 
-## 6. THE PLAN (user executes; Claude teaches)
+## 6. THE PLAN (staged; user executes, Claude teaches)
 
-**Phase 1 — Bare standalone A2UI React client (npm, no workspace).**
+### STAGE 1 — Faithful rebuild of the restaurant SAMPLE in B:\a2ui2 (DO THIS FIRST)
+Goal: a working replica of `samples/client/react/shell`, outside the monorepo, same
+behavior. Mirror the sample's choices; deviate only to use npm + standalone.
+
+**Phase 1 — scaffold the client**
 1. `npm create vite@latest <app> -- --template react-ts`
 2. `npm install @a2ui/react @a2ui/web_core @a2ui/markdown-it zod`
-3. `vite.config.ts`: only `@vitejs/plugin-react`. (Optionally
-   `optimizeDeps.include:['@a2ui/react','react','react-dom']`.) **Nothing A2UI-specific is
-   a Vite plugin — the A2UI packages are ordinary runtime imports.** This is the answer to
-   "what's added to Vite": essentially nothing beyond the React plugin.
+3. `npm install -D @a2a-js/sdk` IF we keep the sample's dev A2A middleware (it runs in the
+   Vite/Node dev server, NOT the browser bundle).
+4. `vite.config.ts`: `@vitejs/plugin-react` + the A2A dev middleware (ported from the
+   sample's `middleware/a2a.ts`), `server.port 5003`,
+   `optimizeDeps.include:['@a2ui/react','react','react-dom']`. **Nothing A2UI-specific is a
+   Vite plugin — the A2UI packages are ordinary runtime imports; the only custom Vite bit
+   is the dev middleware that proxies `/a2a` to the agent.**
 
-**Phase 2 — Bring over the 4 real files + understand imports.**
-Copy/adapt `App.tsx`, `client.ts`, `configs/*`; DELETE `mock/*` and the `?mock=true`
-branch. Keep one real path: form submit / action → `client.send()` → `processor
-.processMessages(chunks)` → `<A2uiSurface>` renders.
+**Phase 2 — port the 4 real files + understand imports**
+Copy/adapt `App.tsx`, `client.ts`, `configs/*`. DELETE `mock/*` and the `?mock=true`
+branch (no mock). One real path: form submit / action → `client.send()` →
+`processor.processMessages(chunks)` → `<A2uiSurface>` renders.
 
-**Phase 3 — Point the transport at the user's FastAPI (A2A).**
-Rewrite `client.ts` target (or add a Vite dev `server.proxy` for `/a2a` → FastAPI).
-FastAPI (uv) exposes the A2A agent card + streaming endpoint and emits A2UI `kind:'data'`
-parts over SSE. Decide: direct browser→FastAPI (CORS) vs a small proxy.
+**Phase 3 — run against the EXISTING Python agent**
+Reuse `B:\a2ui\samples\agent\adk\restaurant_finder` (ADK + Gemini, port 10002). Run it per
+its README (`uv run .`, set GEMINI_API_KEY). Dev middleware proxies `/a2a` → 10002.
+Verify the full loop: query → restaurant list → "Book Now" → booking form → submit →
+confirmation. Same as the sample.
 
-**Phase 4 — FastAPI emits real A2UI, then wire AgentCore + Gateway MCP.**
-Start FastAPI returning the SAME hardcoded restaurant JSON the sample's `mock/` produced
-(proves the whole loop end-to-end with the user's own backend). THEN replace the hardcoded
-JSON with LLM output from the AgentCore agent; Gateway MCP tools supply restaurant data.
+### STAGE 2 — (optional) rebuild a couple of OTHER samples to learn more
+Targets decided by the user (e.g. another client renderer, the agent itself, a custom
+catalog). Record each here as we go.
+
+### STAGE 3 — Migrate toward the FINAL GOAL (only after Stages 1–2)
+Replace the Python/ADK agent with the user's own **FastAPI (uv)** backend speaking A2A,
+emitting A2UI `kind:'data'` parts over SSE. Start by returning the SAME restaurant JSON
+(from the sample's old `mock/`) to prove the loop, then drive it with **AWS AgentCore**
+agents; **Gateway MCP** tools supply restaurant data. Point the client transport at
+FastAPI (Vite dev proxy or direct with CORS).
 
 ---
 
