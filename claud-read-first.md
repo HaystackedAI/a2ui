@@ -35,13 +35,18 @@
   have to; use prod environment to develop." So Phase 3's "verify against monorepo agent"
   detour is DROPPED. We build our OWN backend now (the real target stack), bring it up
   minimal, grow it in place — nothing thrown away.
-  Backend = **FastAPI + uv** at `B:\a2ui2\agent`: `POST /a2a` → **SSE** of A2A-shaped parts
+  Backend = **FastAPI** project at `B:\a2ui2\a2ui_fastapi` (NOT `agent/` — user scaffolded
+  via FastAPI CLI: `fastapi[standard]>=0.142.2`, py>=3.13, entry `main.py` with `app`).
+  **Already DEPLOYED to FastAPI Cloud: https://a2ui-61cd4406.fastapicloud.dev/** (root
+  returns Hello World, HTTP 200). Dev loop: `uv run fastapi dev` (local :8000) /
+  `uv run fastapi deploy` (push to cloud). User wants to develop against the PROD (cloud)
+  URL. Plan: `POST /a2a` → **SSE** of A2A-shaped parts
   (`data: [{kind:'data', data:<a2ui msg>, mimeType:'application/a2ui+json'}]\n\n`) — exactly
-  what `client.ts` already parses, so NO @a2a-js/sdk needed. CORS enabled. Client posts to
-  `import.meta.env.VITE_A2A_URL ?? '/a2a'` (dev → http://localhost:8000/a2a). Run locally
-  via `uv run` while building (that's the REAL binary, not a mock); deploy to **Fly** when
-  cloud is wanted. Grow: hardcoded restaurant JSON → interactive turns → real agent +
-  **AWS AgentCore** + **Gateway MCP**.
+  what `client.ts` already parses, so NO @a2a-js/sdk needed. CORS enabled (client is
+  cross-origin). Client posts to `import.meta.env.VITE_A2A_URL ?? '/a2a'`; set
+  `VITE_A2A_URL=https://a2ui-61cd4406.fastapicloud.dev/a2a` (or localhost:8000 for a faster
+  inner loop). Grow: hardcoded restaurant JSON → interactive turns → real agent +
+  **AWS AgentCore** + **Gateway MCP**. (Deploy target is FastAPI Cloud, not Fly.)
 - **Repo layout:** client = `B:\a2ui2\a2ui_react` (Vite React-TS, DONE/scaffolded,
   blank app runs); agent (later) = `B:\a2ui2\agent` (planned).
 - Progress: Phase 1 steps 1-4a DONE. Step 1: blank Vite React-TS app runs. Step 2:
@@ -76,14 +81,15 @@
   minimal search form (onSubmit only — NO per-keystroke send), spinner, error, surfaces map.
   Inline `config={title,placeholder}`. `tsc -b` clean. Clicking Send now POSTs /a2a → 404
   until the dev middleware exists (expected). Client-side loop is COMPLETE.
-  Next (REVISED per pivot above) = build our own FastAPI/uv backend at `B:\a2ui2\agent`.
-  Step B1: `uv init agent` + `uv add fastapi "uvicorn[standard]"`, minimal main.py with a
-  health route, verify `uv run uvicorn ...` serves. Step B2: `POST /a2a` returns an SSE
-  stream of the hardcoded restaurant-list A2UI messages (reuse shapes from sample
-  `src/mock/restaurantMessages.ts`), add CORS. Step B3: tweak `client.ts` to use
-  `VITE_A2A_URL`; run both; verify query → restaurant list renders. Step B4: handle the
-  `book_restaurant` / `submit_booking` actions (form, confirmation). Later: real agent +
-  AgentCore + Gateway MCP; deploy to Fly.
+  Next (REVISED) = add the `/a2a` endpoint to `B:\a2ui2\a2ui_fastapi\main.py` (B1 scaffold
+  is DONE — project exists + deployed). Step B2a: add CORSMiddleware + `POST /a2a` returning
+  a StreamingResponse (media_type text/event-stream) that yields ONE event
+  `data: <json parts>\n\n` carrying the 3-message "Hello from FastAPI" TOY surface; deploy;
+  curl-verify. Step B2b: swap toy for the full restaurant-list messages (shapes from sample
+  `src/mock/restaurantMessages.ts`). Step B3: client — add `.env` `VITE_A2A_URL=<cloud>/a2a`,
+  change client.ts `/a2a` → `import.meta.env.VITE_A2A_URL ?? '/a2a'`; run client; verify
+  query → surface renders over the network. Step B4: handle `book_restaurant` /
+  `submit_booking` actions (form, confirmation). Later: real agent + AgentCore + Gateway MCP.
 - **Working agreement (confirmed by user): "you teach, I work, you check."** The loop:
   Claude explains the next tiny step → the USER writes the code → Claude verifies
   (reads files, runs builds/lint/tests to check). Claude does NOT implement the learning
