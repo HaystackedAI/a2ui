@@ -150,9 +150,71 @@
       deploy). Verified offline: text→default(5 items,title "COA"), book→booking-form "Book a
       Table at RedFarm", submit→confirmation "...4 people at 2026-10-05 19:00". Behavior
       preserved. NOT yet deployed.
-  Next: push → CI/CD deploy → browser full loop (query→list→Book Now→form→Submit→confirmation).
-  THEN Stage-3: replace hardcoded handle() with real agent + AWS AgentCore + Gateway MCP
-  (reuse screens/v0_9/*.json as the LLM's few-shot examples, like the sample does).
+  DEPLOYED + BROWSER-VERIFIED (full loop): user walked search→list→Book Now (Xi'an Famous
+  Foods)→booking-form (prefilled name+address, partySize 2)→Submit (picked datetime
+  2026-10-09T13:36, left dietary blank)→confirmation "Booking Confirmed at Xi'an Famous Foods
+  / 2 people at 2026-10-09T13:36 / No dietary requirements specified / We look forward...".
+  Two-way-bound fields + submit_booking context + the dietary else-branch all confirmed live.
+  ===> STAGE 1 COMPLETE: full A2UI pipeline rebuilt in user's own React+FastAPI stack,
+  deployed (FastAPI Cloud + CI/CD), production structure. <===
+  (Aside: the restaurant `infoLink` "More Info" markdown renders via @a2ui/markdown-it's
+  `renderMarkdown` = markdown-it + DOMPurify sanitize [node_modules/@a2ui/markdown-it/src/
+  markdown.js: render then sanitize]; clicking navigates to the external site. User said
+  don't worry about link behavior for now. Possible later hardening: target=_blank/noopener.)
+  ***TARGET CLARIFIED (user, 2026-10-02): the immediate TARGET is to CLONE ALL FUNCTIONS OF
+  THE SAMPLE (restaurant demo: client + agent) in our stack. AgentCore + Gateway MCP is the
+  LONG-TERM GOAL, NOT the target — deferred. Do not conflate.***
+  So our hardcoded `handle()` is a PLACEHOLDER, not the finished agent. To hit target we must
+  clone `samples/agent/adk/restaurant_finder`'s FUNCTIONS in FastAPI. Function inventory:
+   CLIENT (mostly done): search→query ✓; render list ✓; Book Now→form ✓; Submit→confirmation
+     ✓; markdown/More Info ✓. STILL MISSING on client: two-column list rendering for >5
+     results; (deliberately skipped chrome: dark-mode toggle, loading-text rotation, hero
+     image, mock badge — revisit only if "all functions" includes them).
+   AGENT (NOT cloned — only a hardcoded stand-in): (a) A2A server + agent card; (b)
+     `get_restaurants` tool that extracts cuisine/location/count from the query + returns
+     matching data (we always return the same 5); (c) LLM-GENERATED A2UI from basic-catalog
+     schema + example templates (examples/0.9/*.json) + selection RULES; (d) ≤5 →
+     single_column_list, >5 → two_column_list (we only have single-col); (e) booking_form on
+     book intent, confirmation on submit; (f) optional text-only mode (get_text_prompt).
+  AGENT DECISION RESOLVED (2026-10-02): faithful LLM clone, provider = GEMINI (user has key),
+  SINGLE client-facing FastAPI Cloud container (evolve a2ui_fastapi; NO separate gateway yet).
+  Scope CUTS (user): SKIP two-column list + all skipped chrome (dark-mode/loading-text/hero/
+  mock-badge) — don't help Final Goal.
+  *** DEPENDENCY WALL (the "unless cannot") ***: `a2ui-agent-sdk` 0.7.0 IS on PyPI (import
+  `a2ui`) BUT hard-depends on `google-adk`, which pins `opentelemetry-sdk<1.43`, while
+  `fastapi[standard]` 0.142.2 (FastAPI Cloud) needs `opentelemetry-sdk>=1.44` → UNSOLVABLE.
+  So we CANNOT use a2ui-agent-sdk / google-adk / a2a-sdk in this FastAPI project.
+  RESOLUTION (REVISED — user: don't degrade to bare genai, that throws away agent architecture;
+  use STRANDS now = the real endgame framework): AGENT FRAMEWORK = **Strands Agents SDK**
+  (`strands-agents`), NOT ADK, NOT bare genai. Verified on PyPI (v1.57.2, py>=3.10):
+   - opentelemetry-sdk pinned `>=1.30,<2.0` → COMPATIBLE with fastapi[standard]'s >=1.44 (ADK
+     capped <1.43 — THAT was the wall; Strands clears it).
+   - native Gemini via `strands-agents[gemini]` (google-genai); your key works.
+   - native A2A via `strands-agents[a2a]` (a2a-sdk+starlette+uvicorn) — A2A kept as 1st-class.
+   - AgentCore via strands-agents-tools `bedrock-agentcore` extras → Strands-now IS the AgentCore
+     on-ramp. Strands runs as a lib inside our FastAPI Cloud container now; → AgentCore later,
+     same agent code.
+  Principle reaffirmed by user: code can be simple, but structure/architecture = production
+  (keep the agent framework + A2A; sample uses A2A "for a reason" even if simple demo needn't).
+  Clone the sample's BUSINESS FUNCTIONS on Strands: system prompt = component rules +
+  `screens/v0_9/*.json` as few-shot examples + selection rules; `get_restaurants` as a Strands
+  tool; action→text-query; parse/validate+retry.
+  TOPOLOGY DECIDED = (1), after user clarification: dropping the sample's dev A2A middleware
+  was only dropping its dev-only PACKAGING (Vite Node server); its ROLE (an A2A gateway/BFF:
+  hold agent conn, speak real A2A, translate to/from browser) is PRODUCTION-MEANINGFUL and we
+  KEPT it — it's our FastAPI `/a2a` backend. The "dumb browser" (POST+SSE) is the CORRECT prod
+  design (browser must NOT speak agent-to-agent protocols or hold agent creds; the backend
+  gateway does). So:
+    browser (dumb POST+SSE) → FastAPI `/a2a` = A2A GATEWAY (prod heir of the dev middleware)
+      → speaks A2A to → Strands agent (`strands-agents[gemini,a2a]`, Gemini) → AgentCore later.
+  Agent runs in the SAME FastAPI Cloud container now; A2A boundary is real but local; at
+  AgentCore time only the gateway's target URL changes (localized seam). INSTALL:
+  `uv add 'strands-agents[gemini,a2a]'`. Next: build Strands agent (system prompt = component
+  rules + screens/v0_9/*.json examples + selection rules; get_restaurants tool; parse/validate
+  +retry) + make /a2a the gateway that bridges dumb browser ⇄ A2A agent.
+  (Pending/optional, not blocking: frontend catalog seam src/catalog/index.ts re-exporting
+  basicCatalog.) STAGE 2 "other samples" (custom-components-example, community/mcp/*, other
+  client frameworks) is SEPARATE from this target.
 - **Working agreement (confirmed by user): "you teach, I work, you check."** The loop:
   Claude explains the next tiny step → the USER writes the code → Claude verifies
   (reads files, runs builds/lint/tests to check). Claude does NOT implement the learning

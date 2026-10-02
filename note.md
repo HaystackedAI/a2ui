@@ -53,3 +53,13 @@ The sharpest way to see the difference: with JSP, the server writes <div class="
 
 And the reason this matters for your actual goal (agents): you would never let an LLM write r page — that's an injection waiting to happen. A2UI's catalog is the allowlist that makes "let the model build the UI" safe. JSP has no such boundary.                                                                                                                                                             
 So: server-driven UI — yes, same family as JSP. But A2UI is that idea rebuilt as a safe, reactive, cross-platform protocol rather than HTML templating. Think "the server sends a remote-UI spec a generic renderer paints," closer to React Server Components or Airbnb-style Server-Driven UI than to JSP.
+
+
+browser (dumb POST+SSE)  ──►  FastAPI /a2a  = A2A GATEWAY (prod heir of the dev middleware)
+                                     │  speaks A2A to…
+                                     ▼
+                               Strands agent (A2A-capable, Gemini) ──► AgentCore later
+
+- Browser: unchanged, dumb, correct.
+- /a2a: the gateway — translates browser ⇄ A2A, exactly like the sample's middleware did, but as a real backend.
+- Agent: Strands with [a2a], so the gateway↔agent boundary is real A2A from day one (not a shortcut). When the agent moves to AgentCore, only the gateway's target URL changes.
