@@ -238,9 +238,18 @@
   examples + data-model shapes), brain.build_agent()/generate(query) (OpenAIModel→Groq, tool,
   parse A2UI JSON + 1 retry). Test (CLAUDE ran): list→default(5 items), book→booking-form,
   submit→confirmation, all valid 3-message A2UI. <===
-  NEXT = PHASE B: expose agent over A2A — a2ui_agent/main.py = `A2AServer(build_agent())
-  .to_fastapi_app()`; deploy (git push CI/CD). THEN PHASE C: a2ui_fastapi gateway calls the
-  agent over A2A, converts browser action→text-query (like sample agent_executor), streams SSE.
+  PHASE B (A2A server) — code DONE + local build OK, deploy PENDING: a2ui_agent/main.py =
+  `A2AServer(agent_factory=lambda ctx: build_agent(), http_url=os.environ.get("AGENT_PUBLIC_URL"),
+  serve_at_root=True).to_fastapi_app()`. Local check: app=A2AFastAPI, exposes
+  /.well-known/agent-card.json. DEPLOYED URLS: gateway=a2ui-backend.fastapicloud.dev (/a2a),
+  agent=a2ui-agent.fastapicloud.dev. BUT agent deploy is STILL THE OLD HELLO-WORLD STUB (/.well-
+  known/agent-card.json → 404, / → Hello World) — new main.py NOT yet (re)deployed.
+  DEPLOY PREREQ: set GROQ_API_KEY env/secret on the a2ui-agent FastAPI Cloud service (A2AServer
+  runs build_agent() at BOOT → reads it → crash if missing). Optional AGENT_PUBLIC_URL=
+  https://a2ui-agent.fastapicloud.dev (agent-card url). config.ts already has A2A_URL (gateway)
+  + A2UI_AGENT_URL (agent). A2A = client/server: agent=server (Phase B), gateway=client (Phase C).
+  THEN PHASE C: a2ui_fastapi gateway = A2A CLIENT — reads agent card, message/stream to the agent,
+  converts browser action→text-query (like sample agent_executor), wraps parts → browser SSE.
   (Pending/optional, not blocking: frontend catalog seam src/catalog/index.ts re-exporting
   basicCatalog.) STAGE 2 "other samples" (custom-components-example, community/mcp/*, other
   client frameworks) is SEPARATE from this target.
