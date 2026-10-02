@@ -16,18 +16,22 @@
   assumptions, locked in architecture + decisions.
 - **Scope/sequencing (IMPORTANT — clarified by user). This is STAGED; do NOT jump to the
   final stack:**
-  1. **NOW: faithfully rebuild the restaurant SAMPLE in `B:\a2ui2`.** Mirror the sample's
-     tooling 1:1 — "whatever the sample uses, we use" — and **reuse the EXISTING Python
-     agent**. Only deliberate deviations: **npm** (not yarn) and **standalone** (no
-     monorepo workspace). Ground every choice in this doc / the sample.
+  1. **NOW: faithfully rebuild the restaurant SAMPLE in `B:\a2ui2` — the WHOLE pipeline,
+     both the React client AND the Python agent** (tiny step-by-step, user types, Claude
+     teaches). Mirror the sample's tooling 1:1 — "whatever the sample uses, we use". Only
+     deliberate deviations: **npm** (not yarn) and **standalone** (no monorepo workspace).
+     The EXISTING monorepo agent is used only as a temporary backend to verify the client
+     before we rebuild our own agent. Ground every choice in this doc / the sample.
   2. Then possibly rebuild a couple of OTHER samples to learn more.
   3. ONLY AFTER that, migrate toward the **final goal**: own **FastAPI/uv** backend +
      **AWS AgentCore** agents + **Gateway MCP**.
 - **Decisions locked:** Transport = **A2A** (the sample uses it, so the rebuild uses it).
   No mock mode. **npm** (not yarn). **Single standalone React project** (no monorepo).
   Final-goal backend = FastAPI (uv) + AgentCore + Gateway MCP — **DEFERRED, not step 1.**
-- Next action: **Stage 1 / Phase 1** — scaffold the standalone Vite React 19 client,
-  wired to the existing restaurant agent (see §6).
+- **Repo layout:** client = `B:\a2ui2\a2ui_react` (Vite React-TS, DONE/scaffolded,
+  blank app runs); agent (later) = `B:\a2ui2\agent` (planned).
+- Progress: Stage 1 / Phase 1 step 1 DONE (blank Vite React-TS app runs). Next = install
+  the `@a2ui/*` packages into `a2ui_react` and confirm they resolve (Phase 1 step 2).
 - Teaching mode: **the user writes the code; Claude explains and unblocks.** Do NOT
   implement for them unless they ask. User is doing this to learn.
 
@@ -216,11 +220,19 @@ Copy/adapt `App.tsx`, `client.ts`, `configs/*`. DELETE `mock/*` and the `?mock=t
 branch (no mock). One real path: form submit / action → `client.send()` →
 `processor.processMessages(chunks)` → `<A2uiSurface>` renders.
 
-**Phase 3 — run against the EXISTING Python agent**
+**Phase 3 — verify client against the EXISTING Python agent (temporary backend)**
 Reuse `B:\a2ui\samples\agent\adk\restaurant_finder` (ADK + Gemini, port 10002). Run it per
 its README (`uv run .`, set GEMINI_API_KEY). Dev middleware proxies `/a2a` → 10002.
 Verify the full loop: query → restaurant list → "Book Now" → booking form → submit →
-confirmation. Same as the sample.
+confirmation. This proves our client is correct before we rebuild the agent.
+
+**Phase 4 — rebuild the AGENT in `B:\a2ui2` (uv), replace the monorepo one**
+Rebuild the restaurant agent ourselves (study `samples/agent/adk/restaurant_finder`): it
+receives A2A messages and emits A2UI `kind:'data'` parts (createSurface/updateComponents/
+updateDataModel/beginRendering) over SSE, exposes an agent card at
+`/.well-known/agent-card.json`, declares the A2UI A2A extension. Managed by **uv**. Point
+the client's dev middleware at our agent instead of the monorepo one. Full pipeline now
+lives in `B:\a2ui2`.
 
 ### STAGE 2 — (optional) rebuild a couple of OTHER samples to learn more
 Targets decided by the user (e.g. another client renderer, the agent itself, a custom

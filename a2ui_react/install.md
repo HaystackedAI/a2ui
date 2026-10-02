@@ -1,0 +1,1 @@
+npm install @a2ui/react @a2ui/web_core @a2ui/markdown-it zod
