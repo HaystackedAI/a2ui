@@ -44,3 +44,12 @@ user types query ──► client.send(query, onChunk)
 user clicks a Button ──► processor's action callback ──► client.send({version,action}) ──► (loop)
 
 That's the full loop working end to end — browser at :5173 → FastAPI Cloud → SSE → processor.processMessages → <A2uiSurface>. The entire pipeline you set out to rebuild is now proven with real network transport. 🎉
+
+
+
+Good analogy to reach for — and the instinct is right in one dimension: both are server-driven UI. The server decides what the user sees; the client displays it. But A2UI differs from JSP in three ways that are the whole point, so it's worth being precise.
+
+The sharpest way to see the difference: with JSP, the server writes <div class="card">...</div> — it knows about HTML and CSS. With A2UI, the server says {"component": "Card", ...} and has no idea how a Card is drawn — your React basicCatalog decides that. The server describes structure and data; the client o
+
+And the reason this matters for your actual goal (agents): you would never let an LLM write r page — that's an injection waiting to happen. A2UI's catalog is the allowlist that makes "let the model build the UI" safe. JSP has no such boundary.                                                                                                                                                             
+So: server-driven UI — yes, same family as JSP. But A2UI is that idea rebuilt as a safe, reactive, cross-platform protocol rather than HTML templating. Think "the server sends a remote-UI spec a generic renderer paints," closer to React Server Components or Airbnb-style Server-Driven UI than to JSP.

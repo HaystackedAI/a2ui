@@ -100,7 +100,8 @@
   /a2a path → import.meta.env undefined → fetched localhost:5173/a2a → 404; replaced by
   config.ts.) B3 VERIFIED: Send → "Hello from FastAPI" renders over the network. FULL LOOP
   (browser → FastAPI Cloud → SSE → render) PROVEN.
-  Step B2b (code written, awaiting deploy+verify): main.py now serves the full restaurant
+  Step B2b DONE + DEPLOYED + CURL-VERIFIED (cloud /a2a → 3 parts, title "Top 5 Chinese
+  Restaurants in New York", 5 items): main.py serves the full restaurant
   list via `restaurant_list_surface()` — 3 messages faithful to sample
   `createRestaurantListMessages`. DATA SPLIT (user request): the 5 restaurants live in
   `a2ui_fastapi/datasource/restaurant_list.py` as `RESTAURANTS` (datasource/ is a namespace
@@ -115,11 +116,43 @@
   (`{path:'/title'}`); each `template-book-button` fires action `book_restaurant` with context
   captured per-item ({restaurantName,imageUrl,address} as {path:...}). Endpoint still ignores
   body + always returns the list. hello_surface() removed.
-  Next: push → CI/CD deploy → curl-verify → browser shows 5 cards. Then Step B4: make `/a2a`
-  branch on the request body — plain text query → list; JSON `{version,action}` with
-  action.name 'book_restaurant' → booking-form surface; 'submit_booking' → confirmation
-  (shapes in sample restaurantMessages.ts createBookingFormMessages/createConfirmationMessages).
-  Later: real agent + AgentCore + Gateway MCP.
+  RULE RE-AFFIRMED MID-B4: strict teach/type — Claude shows code + explains, USER types,
+  Claude verifies. (Claude drifted into writing files; user corrected "you don't write, you
+  teach, i type"; reverted. "you fix"/"you help/you do" are explicit one-off opt-ins only.)
+  Step B4 DONE + VERIFIED (offline), awaiting deploy: `/a2a` is now INTERACTIVE. main.py has
+  3 surface builders (restaurant_list_surface, booking_form_surface(restaurantName,imageUrl,
+  address), confirmation_surface(name,partySize,reservationTime,dietary,imageUrl)) + a
+  `handle(body)` dispatch: json.loads(body); if dict has `action` → branch on action.name
+  ('book_restaurant'→booking-form, 'submit_booking'→confirmation); else → list. endpoint
+  streams `handle(body)`. Action context arrives already-resolved to concrete values by the
+  client MessageProcessor. booking-form uses TextField/DateTimeInput two-way bound to the data
+  model (value:{path:/x}); submit button captures those back into its action context. Distinct
+  surfaceIds default/booking-form/confirmation; client deletes all surfaces each turn so only
+  the newest shows. Verified via `uv run python -c import main`: text→default, book→booking-
+  form "Book a Table at RedFarm", submit→confirmation "Booking Confirmed... 4 people at ...".
+  NOTE: user hand-edited the list title to "COA" (was "Top 5 Chinese Restaurants in New York")
+  — their edit, preserved verbatim through the refactor; lives in `screens.restaurant_list`.
+  REFACTOR DONE (user: "you do the refactor", prod-structure directive — see §0.5): the 3
+  inline Python surface builders were REMOVED from main.py and re-expressed as:
+    - `a2ui_fastapi/screens/v0_9/{restaurant_list,booking_form,confirmation}.json` — STATIC
+      layout only (createSurface + updateComponents + bindings); the "UI contract" assets.
+      (Checked the sample agent `samples/agent/adk/restaurant_finder`: it stores screens the
+      same way, as `examples/0.9/*.json`, used as LLM few-shot prompt examples — so storing
+      ours as JSON is forward-compatible with the Stage-3 LLM agent.)
+    - `a2ui_fastapi/screens/__init__.py` — assembly interface: `_layout(name)` loads+parses a
+      JSON asset (lru_cache on raw text, fresh parse per call so callers can't mutate cache),
+      `_data_model(surfaceId, value)` builds the runtime updateDataModel; public fns
+      `restaurant_list(restaurants)`, `booking_form(name,img,addr)`,
+      `confirmation(name,partySize,time,dietary,img)` = layout + data model.
+    - `datasource/restaurant_list.py` — RESTAURANTS (unchanged).
+    - `main.py` — now THIN: CORS + `handle(body)` dispatch (routes to screens.*) + `/a2a` +
+      root. Path resolution uses `Path(__file__).parent/"v0_9"` (CWD-independent; ships in the
+      deploy). Verified offline: text→default(5 items,title "COA"), book→booking-form "Book a
+      Table at RedFarm", submit→confirmation "...4 people at 2026-10-05 19:00". Behavior
+      preserved. NOT yet deployed.
+  Next: push → CI/CD deploy → browser full loop (query→list→Book Now→form→Submit→confirmation).
+  THEN Stage-3: replace hardcoded handle() with real agent + AWS AgentCore + Gateway MCP
+  (reuse screens/v0_9/*.json as the LLM's few-shot examples, like the sample does).
 - **Working agreement (confirmed by user): "you teach, I work, you check."** The loop:
   Claude explains the next tiny step → the USER writes the code → Claude verifies
   (reads files, runs builds/lint/tests to check). Claude does NOT implement the learning
@@ -127,6 +160,17 @@
   a smoke-test build). Keep steps TINY and verify each before moving on. User is learning.
 
 ---
+
+## 0.5 GUIDING PRINCIPLE (user directive, 2026-10-02)
+
+**Code may be SAMPLE-LEVEL; architecture must be PRODUCTION-LEVEL.** The logic can be
+simple, placeholder, hardcoded, stubbed-to-replace — as long as it works. But the
+structure/folders/modules must be production-grade: separation of concerns, clear
+interfaces & contracts, explicit imports, modularization. Rationale: throwaway logic is
+cheap to replace; a throwaway structure must be torn out later. (Mirrored in memory
+`sample-code-prod-architecture`.) Example applied: backend split into
+`screens/v0_9/*.json` (UI layout assets / contract) + `screens/__init__.py` (assembly
+interface) + `datasource/` (data) + thin `main.py` (transport + routing).
 
 ## 1. USER GOAL & PREFERENCES
 
