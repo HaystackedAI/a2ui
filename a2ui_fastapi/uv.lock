@@ -32,6 +32,7 @@ name = "a2ui-fastapi"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "a2a-sdk" },
     { name = "fastapi", extra = ["standard"] },
     { name = "google-genai" },
     { name = "strands-agents", extra = ["a2a", "gemini"] },
@@ -39,6 +40,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "a2a-sdk", specifier = ">=0.3.26" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.142.2" },
     { name = "google-genai", specifier = ">=2.28.0" },
     { name = "strands-agents", extras = ["a2a", "gemini"], specifier = ">=1.57.2" },

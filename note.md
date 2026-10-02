@@ -92,3 +92,42 @@ Staged plan
 browser (dumb POST+SSE)
    → a2ui_fastapi  = A2A CLIENT  (Phase C)   ─ message/stream ─►   a2ui_agent = A2A SERVER (Phase B)
    ◄──────── SSE ────────                     ◄─ streamed parts ──   (Strands + Groq)
+
+
+
+Last step: we got your LLM agent live on A2A and verified it. Specifically:
+
+1. Built the agent brain in a2ui_agent — tools.py (get_restaurants), prompt.py (rules + our 3 screen examples), brain.py (Strands Agent).
+2. Switched the model to Groq gpt-oss-120b (Gemini's free tier was capped at 20/day and kept blocking us).
+3. Wrapped it as an A2A server (main.py = A2AServer(...).to_fastapi_app()).
+4. You deployed it to a2ui-agent.fastapicloud.dev + set GROQ_API_KEY.
+5. I tested the deployed agent over A2A message/stream → it returned valid A2UI (createSurface/updateComponents/updateDataModel, 5 restaurants) for "find chinese restaurants in New York". ✅
+
+So: the LLM agent (A2A server) is done and live — that was Phase B.
+
+Where that leaves us:
+- ✅ React client (browser)
+- ✅ Gateway a2ui_fastapi — but still serving deterministic hardcoded screens
+- ✅ LLM agent a2ui_agent — live on A2A, Groq-driven
+- ⬜ Phase C (next): wire the gateway to call the agent, so the browser shows the LLM's screens instead of the canned ones.
+
+Right now the browser → gateway → canned screens. Phase C makes it browser → gateway → agent → LLM screens. Want to build Phase C?
+
+
+Let's build Phase C. The gateway (a2ui_fastapi) becomes an A2A client: it takes the browser's input, calls the agent's message/stream, pulls the A2UI out, and streams it back to the browser as SSE.
+
+I'll teach it in small, testable pieces:
+- C1 (now): the A2A client — agent_client.py with ask_agent(query) → A2UI messages. I can test this directly against your live agent.
+- C2: convert browser action → text query (the book_restaurant/submit_booking mapping)
+- C3: rewrite /a2a to use them + SSE to the browser
+- C4: remove the old deterministic handle()/screens, deploy, see it in the browser
+
+On the client choice: I'm going with httpx + raw JSON-RPC (not a2a-sdk), because I already proved the exact request/response shapes work (the curl test), httpx ships with fastapi[standard], and we isolate it in a dedicated module — so the structure stays production (a clean A2A-client boundary) while the code stays simple and teachable. Swappable to a2a-sdk later without touching the rest.
+
+
+
+How it maps to A2A (client side):
+- A2ACardResolver → get_agent_card() = discover the agent (reads /.well-known/agent-card.json).
+- override card.url to the real agent address (the gateway is configured with it; avoids the 127.0.0.1 card issue).
+- ClientFactory(...).create(card) = build the A2A client (JSON-RPC transport).
+- client.send_message(...) = the message/stream call; it yields (Task, update) events, from which we pull the A2UI JSON text and parse it.

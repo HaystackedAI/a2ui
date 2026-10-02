@@ -238,7 +238,26 @@
   examples + data-model shapes), brain.build_agent()/generate(query) (OpenAIModel→Groq, tool,
   parse A2UI JSON + 1 retry). Test (CLAUDE ran): list→default(5 items), book→booking-form,
   submit→confirmation, all valid 3-message A2UI. <===
-  PHASE B (A2A server) — code DONE + local build OK, deploy PENDING: a2ui_agent/main.py =
+  PHASE B DONE + DEPLOYED + VERIFIED LIVE: deployed a2ui-agent.fastapicloud.dev serves A2A —
+  /.well-known/agent-card.json → 200 (card: streaming:true, skill get_restaurants, transport
+  JSONRPC), POST / = message/stream. Tested message/stream (text "Find me chinese restaurants
+  in New York") → SSE of JSON-RPC events; FINAL artifact carries valid A2UI (3 msgs
+  createSurface/updateComponents/updateDataModel, surfaceId default, 5 items). CONFIRMED the
+  A2UI JSON arrives as the `text` of a part inside the stream (Strands emits agent output as
+  A2A text/artifact parts — NOT a2ui data parts; A2UI-for-browser wrapping is the GATEWAY's job).
+  Card `url` is still http://127.0.0.1:9000/ because AGENT_PUBLIC_URL unset → TODO set
+  AGENT_PUBLIC_URL=https://a2ui-agent.fastapicloud.dev + redeploy (so fromCardUrl clients work;
+  gateway can also just POST the known base URL directly).
+  === PHASE C (gateway = A2A client) NEXT ===: a2ui_fastapi /a2a must: (1) receive browser
+  POST (text query OR JSON {version,action}); (2) convert action→text-query like sample
+  agent_executor (book_restaurant→"USER_WANTS_TO_BOOK: ...", submit_booking→"User submitted a
+  booking ..."); (3) call the agent's message/stream (via a2a-sdk client OR raw httpx JSON-RPC
+  like the curl test); (4) collect the A2UI JSON from the part text, parse, wrap each msg as
+  `{kind:'data', data:<msg>, mimeType:'application/a2ui+json'}`, stream as browser SSE
+  `data: [parts]`. Replaces the deterministic handle()/screens in a2ui_fastapi (screens+
+  datasource now live in a2ui_agent). Gateway needs an A2A client dep (a2a-sdk or httpx).
+  --- prior Phase B notes ---
+  PHASE B (A2A server) — code DONE + local build OK: a2ui_agent/main.py =
   `A2AServer(agent_factory=lambda ctx: build_agent(), http_url=os.environ.get("AGENT_PUBLIC_URL"),
   serve_at_root=True).to_fastapi_app()`. Local check: app=A2AFastAPI, exposes
   /.well-known/agent-card.json. DEPLOYED URLS: gateway=a2ui-backend.fastapicloud.dev (/a2a),
