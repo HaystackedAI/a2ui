@@ -4,8 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-import screens
-from datasource.restaurant_list import RESTAURANTS
+from agent_client import ask_agent
 
 app = FastAPI()
 
