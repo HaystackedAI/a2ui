@@ -25,18 +25,65 @@
   2. Then possibly rebuild a couple of OTHER samples to learn more.
   3. ONLY AFTER that, migrate toward the **final goal**: own **FastAPI/uv** backend +
      **AWS AgentCore** agents + **Gateway MCP**.
-- **Decisions locked:** Transport = **A2A** (the sample uses it, so the rebuild uses it).
-  No mock mode. **npm** (not yarn). **Single standalone React project** (no monorepo).
-  Final-goal backend = FastAPI (uv) + AgentCore + Gateway MCP — **DEFERRED, not step 1.**
+- **Decisions locked:** Transport = **A2A** (A2A-shaped parts; full JSON-RPC/agent-card
+  envelope added when AgentCore needs it). No mock mode. **npm** (not yarn). **Single
+  standalone React project** (no monorepo).
+- **ARCHITECTURE PIVOT (2026-10-02, user directive): NO dev-only scaffolding.** Do NOT port
+  the sample's Vite dev middleware (`middleware/a2a.ts`); do NOT install `@a2a-js/sdk`; do
+  NOT use the monorepo ADK/Gemini agent even as a temporary backend. Rationale (user):
+  "it's 2026, go prod directly — if need backend, build; if need cloud, fly; no local unless
+  have to; use prod environment to develop." So Phase 3's "verify against monorepo agent"
+  detour is DROPPED. We build our OWN backend now (the real target stack), bring it up
+  minimal, grow it in place — nothing thrown away.
+  Backend = **FastAPI + uv** at `B:\a2ui2\agent`: `POST /a2a` → **SSE** of A2A-shaped parts
+  (`data: [{kind:'data', data:<a2ui msg>, mimeType:'application/a2ui+json'}]\n\n`) — exactly
+  what `client.ts` already parses, so NO @a2a-js/sdk needed. CORS enabled. Client posts to
+  `import.meta.env.VITE_A2A_URL ?? '/a2a'` (dev → http://localhost:8000/a2a). Run locally
+  via `uv run` while building (that's the REAL binary, not a mock); deploy to **Fly** when
+  cloud is wanted. Grow: hardcoded restaurant JSON → interactive turns → real agent +
+  **AWS AgentCore** + **Gateway MCP**.
 - **Repo layout:** client = `B:\a2ui2\a2ui_react` (Vite React-TS, DONE/scaffolded,
   blank app runs); agent (later) = `B:\a2ui2\agent` (planned).
-- Progress: Phase 1 steps 1-3 DONE. Step 1: blank Vite React-TS app runs. Step 2:
+- Progress: Phase 1 steps 1-4a DONE. Step 1: blank Vite React-TS app runs. Step 2:
   installed `@a2ui/react@0.12.0`, `@a2ui/web_core@0.12.0`, `@a2ui/markdown-it@0.2.0`
   (confirms "it's just npm"); removed a stray top-level `zod@4` (see §7). Step 3: added
   `import {basicCatalog} from '@a2ui/react/v0_9'` to `App.tsx` + `vite build` succeeded →
-  versioned subpath import resolves/bundles standalone (bundle ~491KB). That import is
-  THROWAWAY (Step 4 replaces App.tsx). Next = Step 4: build the real shell —
-  `MessageProcessor` + render first hardcoded A2UI surface.
+  versioned subpath import resolves/bundles standalone (bundle ~491KB).
+  Step 4 (shell): `App.tsx` now creates `MessageProcessor<ReactComponentImplementation>([basicCatalog], actionCb)`,
+  wraps in `MarkdownContext.Provider value={renderMarkdown}`, maps surfaces → `<A2uiSurface>`.
+  Step 4a (first surface): inside the `useMemo` that builds the processor, we call
+  `p.processMessages([...])` with a hardcoded 3-message toy surface (createSurface →
+  updateComponents: root Column + one h1 Text bound to `{path:'/title'}` → updateDataModel
+  `{title:'Hello from A2UI'}`). Renders "Hello from A2UI". `tsc -b` clean. Processing INSIDE
+  useMemo means `surfacesMap` is populated before first render, so no reactivity needed yet.
+  CORRECTION to §4: the real restaurant mock uses NO `beginRendering` — just the 3 messages.
+  Step 4b (reactive surfaces) DONE: `App.tsx` now has `const [surfaces, setSurfaces] =
+  useState(() => Array.from(processor.model.surfacesMap.values()))` (lazy init captures the
+  surface made in useMemo) + a `useEffect` subscribing to `processor.onSurfaceCreated`
+  (append) / `onSurfaceDeleted` (filter), cleanup calls `.unsubscribe()` (StrictMode-safe).
+  Screen unchanged (Surfaces:1) but now re-renders when surfaces arrive AFTER first render.
+  `tsc -b` clean. Full current App.tsx = reactive shell + hardcoded toy surface (lines 13-40
+  are the THROWAWAY toy; replace when the real transport lands).
+  Phase 2 transport DONE: `src/client.ts` created — `A2UIClient.send(message, onChunk)`:
+  POSTs to `/a2a`, parses SSE (split on blank line, `data: ` prefix, JSON array of A2A
+  parts), keeps `kind:'data'` as A2uiMessages, dedupes createSurface via `seenSurfaceIds`,
+  non-streaming JSON fallback. Trimmed sample's unused `get ready()`. `tsc -b` clean.
+  Nothing calls it yet + no `/a2a` endpoint, so it only compiles.
+  Phase 2 wiring DONE: App.tsx rewritten — hardcoded toy REMOVED. Now: `A2UIClient` via
+  useMemo; `sendRef` ref breaks the processor↔sendAndProcess cycle (action callback does
+  `sendRef.current?.({version:'v0.9', action})`); `sendAndProcess(msg)` clears old surfaces
+  then `client.send(msg, chunk => processor.processMessages(chunk))`, sets requesting/error;
+  minimal search form (onSubmit only — NO per-keystroke send), spinner, error, surfaces map.
+  Inline `config={title,placeholder}`. `tsc -b` clean. Clicking Send now POSTs /a2a → 404
+  until the dev middleware exists (expected). Client-side loop is COMPLETE.
+  Next (REVISED per pivot above) = build our own FastAPI/uv backend at `B:\a2ui2\agent`.
+  Step B1: `uv init agent` + `uv add fastapi "uvicorn[standard]"`, minimal main.py with a
+  health route, verify `uv run uvicorn ...` serves. Step B2: `POST /a2a` returns an SSE
+  stream of the hardcoded restaurant-list A2UI messages (reuse shapes from sample
+  `src/mock/restaurantMessages.ts`), add CORS. Step B3: tweak `client.ts` to use
+  `VITE_A2A_URL`; run both; verify query → restaurant list renders. Step B4: handle the
+  `book_restaurant` / `submit_booking` actions (form, confirmation). Later: real agent +
+  AgentCore + Gateway MCP; deploy to Fly.
 - **Working agreement (confirmed by user): "you teach, I work, you check."** The loop:
   Claude explains the next tiny step → the USER writes the code → Claude verifies
   (reads files, runs builds/lint/tests to check). Claude does NOT implement the learning
