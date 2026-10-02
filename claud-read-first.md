@@ -248,7 +248,40 @@
   Card `url` is still http://127.0.0.1:9000/ because AGENT_PUBLIC_URL unset → TODO set
   AGENT_PUBLIC_URL=https://a2ui-agent.fastapicloud.dev + redeploy (so fromCardUrl clients work;
   gateway can also just POST the known base URL directly).
-  === PHASE C (gateway = A2A client) NEXT ===: a2ui_fastapi /a2a must: (1) receive browser
+  === PHASE C DONE + DEPLOYED + VERIFIED LIVE (full LLM pipeline!) ===
+  Gateway a2ui_fastapi is now the A2A CLIENT. Files: `agent_client.py` (ask_agent(query):
+  A2ACardResolver.get_agent_card → override card.url to AGENT_URL (card still says 127.0.0.1
+  since AGENT_PUBLIC_URL unset) → ClientFactory(ClientConfig(httpx_client, streaming)).create
+  → client.send_message(create_text_message_object(query)) → recursively pull the part `text`
+  holding the A2UI JSON (model_dump each event) → json.loads). `uv add a2a-sdk` (resolved clean
+  w/ fastapi[standard]; a2a-sdk brings its own httpx — chosen over raw httpx per user to avoid
+  httpx version juggling). main.py rewritten: `to_query(body)` (action→text-query, sample
+  agent_executor mapping) + `/a2a` → ask_agent → wrap `{kind:'data',...}` → SSE. (Had a bug:
+  user left old `import screens`/datasource and forgot `from agent_client import ask_agent` →
+  deployed 500 NameError; fixed by swapping to the ask_agent import.)
+  VERIFIED on deployed a2ui-backend.fastapicloud.dev/a2a: text→restaurant list (5 items, title
+  'Chinese Restaurants in New York' = LLM, not old 'COA'); book action→booking-form 'Book a
+  Table at RedFarm'. FULL CHAIN LIVE: browser:5173 → gateway(A2A client) → agent(Strands/Groq,
+  A2A server) → A2UI → SSE → browser.
+  ===> TARGET (clone the sample's functions on our stack) ESSENTIALLY MET for the restaurant
+  demo: React client + FastAPI A2A gateway + Strands/Groq A2A agent, all deployed. <===
+  CLEANUPS / TODO: (C4) delete dead a2ui_fastapi/screens/ + datasource/ + commented old handle();
+  set AGENT_PUBLIC_URL=https://a2ui-agent.fastapicloud.dev on agent + redeploy (then gateway's
+  card.url override is unneeded); move GROQ_API_KEY from a2ui_fastapi/.env to a2ui_agent/.env +
+  each container's FastAPI Cloud secret; smoke.py/test leftovers in a2ui_agent are throwaway.
+  BUGFIX (confirmation invalid in browser): client A2uiValidationError "updateDataModel.surfaceId:
+  Expected undefined" on submit→confirm. ROOT CAUSE: our few-shot examples (a2ui_agent/examples/
+  v0_9/*.json) were LAYOUT-ONLY (createSurface+updateComponents) — NO updateDataModel example —
+  so the LLM improvised the data message & sometimes dropped surfaceId. (Sample's examples are
+  COMPLETE 3-message screens.) FIX: appended a complete `updateDataModel` message (correct
+  surfaceId + representative value) to all three example files. Verified local brain: confirmation
+  3/3 valid now. NEEDS AGENT REDEPLOY (push a2ui_agent) for the browser to get it.
+  OPTIONAL HARDENING (sample had it via a2ui-agent-sdk, we dropped it): add structural/schema
+  validation + retry in brain.generate() (check each msg has exactly 1 op + surfaceId) so bad
+  LLM output is caught server-side, not at the browser.
+  LONG-TERM (not target): AgentCore (Strands is the on-ramp) + Gateway MCP (get_restaurants → MCP tool).
+  --- original Phase C plan (now done) ---
+  === PHASE C (gateway = A2A client) ORIG PLAN ===: a2ui_fastapi /a2a must: (1) receive browser
   POST (text query OR JSON {version,action}); (2) convert action→text-query like sample
   agent_executor (book_restaurant→"USER_WANTS_TO_BOOK: ...", submit_booking→"User submitted a
   booking ..."); (3) call the agent's message/stream (via a2a-sdk client OR raw httpx JSON-RPC

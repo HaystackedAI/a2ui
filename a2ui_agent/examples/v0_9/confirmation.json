@@ -42,5 +42,18 @@
         { "id": "divider3", "component": "Divider" }
       ]
     }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "confirmation",
+      "path": "/",
+      "value": {
+        "title": "Booking Confirmed at RedFarm",
+        "bookingDetails": "2 people at 2026-10-09 19:00",
+        "dietaryRequirements": "No dietary requirements specified",
+        "imageUrl": "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=400"
+      }
+    }
   }
 ]

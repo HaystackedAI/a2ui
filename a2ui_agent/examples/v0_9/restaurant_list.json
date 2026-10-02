@@ -58,5 +58,33 @@
         { "id": "book-now-text", "component": "Text", "text": "Book Now" }
       ]
     }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "default",
+      "path": "/",
+      "value": {
+        "title": "Top 5 Chinese Restaurants in New York",
+        "items": [
+          {
+            "name": "Xi'an Famous Foods",
+            "detail": "Spicy and savory hand-pulled noodles.",
+            "imageUrl": "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400",
+            "rating": "★★★★☆",
+            "infoLink": "[More Info](https://www.xianfoods.com/)",
+            "address": "81 St Marks Pl, New York, NY 10003"
+          },
+          {
+            "name": "Han Dynasty",
+            "detail": "Authentic Szechuan cuisine.",
+            "imageUrl": "https://images.unsplash.com/photo-1525755662778-989d0524087e?w=400",
+            "rating": "★★★★☆",
+            "infoLink": "[More Info](https://www.handynasty.net/)",
+            "address": "90 3rd Ave, New York, NY 10003"
+          }
+        ]
+      }
+    }
   }
 ]

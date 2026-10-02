@@ -70,5 +70,21 @@
         { "id": "submit-reservation-text", "component": "Text", "text": "Submit Reservation" }
       ]
     }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "booking-form",
+      "path": "/",
+      "value": {
+        "title": "Book a Table at RedFarm",
+        "address": "529 Hudson St, New York, NY 10014",
+        "restaurantName": "RedFarm",
+        "partySize": "2",
+        "reservationTime": "",
+        "dietary": "",
+        "imageUrl": "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=400"
+      }
+    }
   }
 ]
