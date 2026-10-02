@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 
 app = FastAPI()
 
-# The React client runs on a different origin (Vite :5003) than this API,
+# The React client runs on a different origin (Vite :5173) than this API,
 # so the browser needs CORS permission to POST here.
 app.add_middleware(
     CORSMiddleware,

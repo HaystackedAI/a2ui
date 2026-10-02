@@ -7,7 +7,7 @@ import type { A2uiClientMessage } from '@a2ui/web_core/v0_9'
 import { A2UIClient } from './client'
 
 // Minimal branding (port configs/* later).
-const config = { title: 'Restaurant Finder', placeholder: 'Find me a restaurant in NYC' }
+const config = { title: 'COA Finder', placeholder: 'Find me an COA' }
 
 function App() {
     const client = useMemo(() => new A2UIClient(), [])

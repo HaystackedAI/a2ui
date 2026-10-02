@@ -38,9 +38,13 @@
   Backend = **FastAPI** project at `B:\a2ui2\a2ui_fastapi` (NOT `agent/` — user scaffolded
   via FastAPI CLI: `fastapi[standard]>=0.142.2`, py>=3.13, entry `main.py` with `app`).
   **Already DEPLOYED to FastAPI Cloud: https://a2ui-61cd4406.fastapicloud.dev/** (root
-  returns Hello World, HTTP 200). Dev loop: `uv run fastapi dev` (local :8000) /
-  `uv run fastapi deploy` (push to cloud). User wants to develop against the PROD (cloud)
-  URL. Plan: `POST /a2a` → **SSE** of A2A-shaped parts
+  returns Hello World, HTTP 200). **CI/CD is set up: `git push` auto-deploys.**
+  **BACKEND LOCALHOST IS BANNED (user directive).** No `uv run fastapi dev`, no :8000, ever.
+  Loop = edit main.py → `git push` → CI/CD deploys → test the CLOUD URL (curl / browser).
+  The ONLY localhost is the FRONTEND Vite dev server on **:5173** (Vite default; our
+  vite.config has no port override — NOT the sample's 5003). CORS must allow
+  http://localhost:5173 (currently `allow_origins=["*"]`). Plan: `POST /a2a` → **SSE** of
+  A2A-shaped parts
   (`data: [{kind:'data', data:<a2ui msg>, mimeType:'application/a2ui+json'}]\n\n`) — exactly
   what `client.ts` already parses, so NO @a2a-js/sdk needed. CORS enabled (client is
   cross-origin). Client posts to `import.meta.env.VITE_A2A_URL ?? '/a2a'`; set
