@@ -446,6 +446,16 @@ FastAPI (Vite dev proxy or direct with CORS).
 
 ## 7. GOTCHAS / NOTES
 
+- **SECRETS / .env (incident 2026-10-02):** GitHub Push Protection blocked a push because the
+  **GEMINI key was committed** in `a2ui_fastapi/.env` (commit d89416a). Fixed by `git rm
+  --cached` + root `.gitignore` (`.env`/`.env.*`/`*.env`) + `git commit --amend` (secret was in
+  the single unpushed HEAD commit; never reached GitHub). RULE: **never commit API keys.** Keys
+  = real secrets → **FastAPI Cloud env/secrets** per container + a LOCAL gitignored `.env` for
+  dev (distinct from committed non-secret config like React `src/config.ts`). GEMINI_API_KEY
+  belongs on the **a2ui_agent** container (the Gemini caller), NOT a2ui_fastapi (gateway).
+- **Two-container split IN PROGRESS:** `B:\a2ui2\a2ui_agent` scaffolded (its own FastAPI project
+  + uv.lock) = the Strands/Gemini AGENT; `a2ui_fastapi` = the gateway. (See topology (1) above.)
+
 - **ZOD VERSION TRAP (verified 2026-10-02):** A2UI 0.12 pins **zod `^3.25.76`** (it ships
   its own nested `zod@3.25.76` under `@a2ui/react` and `@a2ui/web_core`). The sample's
   `package.json` declares **no** zod. Do NOT run `npm install zod` — npm grabs zod **v4**

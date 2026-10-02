@@ -4,4 +4,4 @@
 
 // Deployed FastAPI backend (A2A/A2UI endpoint). Backend has no localhost — we
 // always talk to the deployed service.
-export const A2A_URL = 'https://a2ui-61cd4406.fastapicloud.dev/a2a'
+export const A2A_URL = 'https://a2ui-backend.fastapicloud.dev/a2a'
