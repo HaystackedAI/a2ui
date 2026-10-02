@@ -42,3 +42,5 @@ Surface  (a screen using that vocabulary)   ← YOU control/render at this level
 user types query ──► client.send(query, onChunk)
                          onChunk(chunk) ──► processor.processMessages(chunk) ──► surface renders
 user clicks a Button ──► processor's action callback ──► client.send({version,action}) ──► (loop)
+
+That's the full loop working end to end — browser at :5173 → FastAPI Cloud → SSE → processor.processMessages → <A2uiSurface>. The entire pipeline you set out to rebuild is now proven with real network transport. 🎉

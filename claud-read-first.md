@@ -98,13 +98,28 @@
   'https://a2ui-61cd4406.fastapicloud.dev/a2a'`; client.ts imports it + `fetch(A2A_URL,...)`.
   `.env` deleted. tsc clean. (Had a false start: user's `.env` used non-VITE_ name + missing
   /a2a path → import.meta.env undefined → fetched localhost:5173/a2a → 404; replaced by
-  config.ts.) Testing: `npm run dev` (:5173), type query, Send → "Hello from FastAPI" renders
-  over the network. Then Step B2b: swap toy for
-  the full restaurant-list messages (shapes from sample
-  `src/mock/restaurantMessages.ts`). Step B3: client — add `.env` `VITE_A2A_URL=<cloud>/a2a`,
-  change client.ts `/a2a` → `import.meta.env.VITE_A2A_URL ?? '/a2a'`; run client; verify
-  query → surface renders over the network. Step B4: handle `book_restaurant` /
-  `submit_booking` actions (form, confirmation). Later: real agent + AgentCore + Gateway MCP.
+  config.ts.) B3 VERIFIED: Send → "Hello from FastAPI" renders over the network. FULL LOOP
+  (browser → FastAPI Cloud → SSE → render) PROVEN.
+  Step B2b (code written, awaiting deploy+verify): main.py now serves the full restaurant
+  list via `restaurant_list_surface()` — 3 messages faithful to sample
+  `createRestaurantListMessages`. DATA SPLIT (user request): the 5 restaurants live in
+  `a2ui_fastapi/datasource/restaurant_list.py` as `RESTAURANTS` (datasource/ is a namespace
+  package — NO __init__.py needed on py3.13); main.py keeps only A2UI message-building.
+  IMPORT GOTCHA (hit + fixed): the app loads as `main:app` with CWD = a2ui_fastapi, so the
+  import MUST be `from datasource.restaurant_list import RESTAURANTS` — NOT
+  `from a2ui_fastapi.datasource...` (that → ModuleNotFoundError: No module named
+  'a2ui_fastapi', because the project root is the CWD, not an importable package above it).
+  Verified `uv run python -c "import main"` → OK, 5 restaurants. Introduces the `List` template: `item-list` List
+  `children:{componentId:'item-card-template', path:'/items'}` stamps the Card template per
+  item; RELATIVE bindings inside template (`{path:'name'}` = current item) vs ABSOLUTE
+  (`{path:'/title'}`); each `template-book-button` fires action `book_restaurant` with context
+  captured per-item ({restaurantName,imageUrl,address} as {path:...}). Endpoint still ignores
+  body + always returns the list. hello_surface() removed.
+  Next: push → CI/CD deploy → curl-verify → browser shows 5 cards. Then Step B4: make `/a2a`
+  branch on the request body — plain text query → list; JSON `{version,action}` with
+  action.name 'book_restaurant' → booking-form surface; 'submit_booking' → confirmation
+  (shapes in sample restaurantMessages.ts createBookingFormMessages/createConfirmationMessages).
+  Later: real agent + AgentCore + Gateway MCP.
 - **Working agreement (confirmed by user): "you teach, I work, you check."** The loop:
   Claude explains the next tiny step → the USER writes the code → Claude verifies
   (reads files, runs builds/lint/tests to check). Claude does NOT implement the learning
