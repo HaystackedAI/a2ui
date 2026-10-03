@@ -6,6 +6,11 @@ import { renderMarkdown } from '@a2ui/markdown-it'
 import type { A2uiClientMessage } from '@a2ui/web_core/v0_9'
 import { A2UIClient } from './client'
 
+
+import { chart_salesCatalog } from './chart_catalog/chart_catalog'
+import { chart_devDashboardMessages } from './chart_catalog/chart_devDashboard'
+
+
 // Minimal branding (port configs/* later).
 const config = { title: 'COA Finder', placeholder: 'Find me an COA' }
 
@@ -16,14 +21,25 @@ function App() {
     // cycle with a ref the callback reads at call time.
     const sendRef = useRef<((m: A2uiClientMessage | string) => Promise<void>) | null>(null)
 
-    const processor = useMemo(
-        () =>
-            new MessageProcessor<ReactComponentImplementation>([basicCatalog], (action) => {
-                console.log('User action:', action)
-                sendRef.current?.({ version: 'v0.9', action })
-            }),
-        [],
-    )
+    // const processor = useMemo(
+    //     () =>
+    //         new MessageProcessor<ReactComponentImplementation>([basicCatalog, chart_salesCatalog], (action) => {
+    //             console.log('User action:', action)
+    //             sendRef.current?.({ version: 'v0.9', action })
+    //         }),
+    //     [],
+    // )
+
+
+    const processor = useMemo(() => {
+        const p = new MessageProcessor<ReactComponentImplementation>([basicCatalog, chart_salesCatalog], (action) => {
+            console.log('User action:', action)
+            sendRef.current?.({ version: 'v0.9', action })
+        })
+        // DEV (throwaway): preview the hardcoded dashboard surface on load.
+        p.processMessages(chart_devDashboardMessages)
+        return p
+    }, [])
 
     const [surfaces, setSurfaces] = useState<ReturnType<typeof getSurfaces>>(() => getSurfaces(processor))
     const [requesting, setRequesting] = useState(false)

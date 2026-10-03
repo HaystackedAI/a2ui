@@ -24,6 +24,10 @@
 6. **v1 scope cuts (deferred):** Q1–Q4 tabs, chart drill-down, dark-mode/chrome. v1 = one quarter,
    static, light theme. (Record each as done if we add them.)
 7. When writing chart/stat-tile visuals, **load the `dataviz` skill first** (color/layout rules).
+8. **NAMING (user rule):** every NEW file/folder/function/variable is prefixed `chart_`; MODIFIED
+   existing files keep their name (`App.tsx` stays `App.tsx`). Protocol A2UI component `name` strings
+   ("StatTile"/"Chart") stay UNPREFIXED. So: folder `src/chart_catalog/`, files `chart_*.tsx`,
+   exports `chart_StatTile`/`chart_salesCatalog`, const `chart_SALES_CATALOG_ID`. (memory: chart-naming-convention)
 
 ---
 
@@ -173,10 +177,10 @@ theming/dark-mode · Snowflake data tool · AgentCore + Gateway MCP (the long-te
 ---
 
 ## OPEN RISKS / verify-during-build (don't guess — test)
-1. **Does the React deep binder resolve a `{path}` to a whole ARRAY subtree** for `chartData`?
-   If `props.chartData` arrives already-resolved → great. If not (binder only resolves scalars) →
-   fallback: use `createBinderlessComponentImplementation` and resolve items via the `context`
-   (like the Angular sample walks `chartData[i].label/.value`). Decide at A5 by logging props.
+1. ✅ RESOLVED at A5: **the React deep binder DOES resolve a `{path}` to the whole array** —
+   `props.chartData` arrives as the resolved `[{label,value}]` array (doughnut rendered with full
+   legend). No binderless fallback needed. `chartData` schema = `z.union([z.array(item),
+   DataBindingSchema])`; renderer coerces `value` to Number.
 2. **Zod schema must include catalog common props** (e.g. `weight`). Read a basic component's `*Api`
    in `@a2ui/web_core/.../basic_catalog` as the template for the common bits before writing ours.
 3. **List-template relative bindings into `/kpis`** must resolve per-item (confirm at A4). If flaky,
