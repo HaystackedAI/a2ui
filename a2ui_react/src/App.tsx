@@ -12,7 +12,7 @@ import { chart_salesCatalog } from './chart_catalog/chart_catalog'
 
 
 // Minimal branding (port configs/* later).
-const config = { title: 'COA Finder', placeholder: 'Find me an COA' }
+const config = { title: 'Sales Dashboard', placeholder: 'sales chart' }
 
 function App() {
     const client = useMemo(() => new A2UIClient(), [])
