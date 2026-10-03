@@ -191,6 +191,6 @@ theming/dark-mode · Snowflake data tool · AgentCore + Gateway MCP (the long-te
    the normal query flow still renders agent surfaces (the toy is temporary; removed in Stage B).
 
 ## STATUS
-- [ ] A1 recharts  [ ] A2 seam  [ ] A3 StatTile  [ ] A4 KPIs render  [ ] A5 doughnut
-  [ ] A6 bar  [ ] A7 full dashboard
+- [x] A1 recharts  [x] A2 seam  [x] A3 StatTile  [x] A4 KPIs render  [x] A5 doughnut
+  [x] A6 bar  [x] A7 full dashboard (user-confirmed visually) — STAGE A (renderer) DONE
 - [ ] B1 schema  [ ] B2 tool  [ ] B3 example  [ ] B4 prompt  [ ] B5 brain  [ ] B6 deploy+verify
