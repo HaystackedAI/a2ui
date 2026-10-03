@@ -131,3 +131,10 @@ How it maps to A2A (client side):
 - override card.url to the real agent address (the gateway is configured with it; avoids the 127.0.0.1 card issue).
 - ClientFactory(...).create(card) = build the A2A client (JSON-RPC transport).
 - client.send_message(...) = the message/stream call; it yields (Task, update) events, from which we pull the A2UI JSON text and parse it.
+
+
+browser a2ui_react (:5173)
+   → gateway a2ui-backend.fastapicloud.dev/a2a   (FastAPI, A2A CLIENT)
+      → agent a2ui-agent.fastapicloud.dev        (Strands + Groq gpt-oss-120b, A2A SERVER)
+         → A2UI JSON → SSE → rendered
+search → list → book → form → submit → confirm, all LLM-generated. Target met.
