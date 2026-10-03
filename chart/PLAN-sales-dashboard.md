@@ -195,15 +195,43 @@ theming/dark-mode · Snowflake data tool · AgentCore + Gateway MCP (the long-te
   [x] A6 bar  [x] A7 full dashboard (user-confirmed visually) — STAGE A (renderer) DONE
 - [x] B1 pyproject deps + uv.lock  [x] B2 data (chart_sales.py)  [x] B3 tool (chart_get_sales_data)
   [x] B4 few-shot example  [x] B5 prompt  [x] B6 brain  [x] B7 __init__  [x] B8 main (A2AServer)
-  [x] DEPLOYED (agent card healthy)  [ ] B9 skipped-local  [ ] **B10 gateway wiring + browser test (NEXT)**
+  [x] DEPLOYED (agent card healthy)  [ ] B9 skipped-local  [x] **B10 gateway wiring + browser test DONE**
+- ===> **TARGET MET (2026-10-03): full Sales-Dashboard LLM pipeline live end-to-end,
+  user-confirmed in browser.** <===  Chain: browser:5173 → gateway a2ui_fastapi (keyword
+  if-else router `chart_pick_agent`: "dashboard/sales/revenue" → chart agent, else restaurant) →
+  chart agent mcpserver.fastapicloud.dev (Strands/Groq, A2A) → A2UI → SSE → chart_catalog renderer.
+  Both demos coexist (restaurant query still routes to the restaurant agent).
+- CLEANUP DONE: `App.tsx` dev-dashboard injection removed (now commented out — `chart_devDashboard`
+  import + DEV useMemo); clean `processor` useMemo active; `tsc -b` clean. Page shows the search
+  form on load; dashboard only renders on query. Throwaway `src/chart_catalog/chart_devDashboard.ts`
+  now unimported (safe to delete).
 
 ---
 
-## 🫱 HANDOVER — RESUME HERE (session paused 2026-10-03)
+## 🫱 HANDOVER — RESUME HERE (session 2026-10-03, TARGET MET)
 
-**Where we are:** Full Sales-Dashboard RENDERER done (Stage A, user-confirmed). The chart AGENT
-(`chart_agent`) is BUILT as a brand-new standalone project and DEPLOYED; its A2A agent card is live.
-NOT yet verified end-to-end (generation untested) and NOT yet wired into the gateway.
+**Where we are:** ✅ **DONE / TARGET MET.** Full Sales-Dashboard pipeline live end-to-end,
+user-confirmed in the browser. Renderer (Stage A) + chart agent (Stage B) + gateway routing (B10)
+all working. Both the dashboard and restaurant demos coexist on the same deployed gateway.
+
+**What landed this session (B10 + cleanup):**
+- Gateway `a2ui_fastapi/agent_client.py`: added `chart_AGENT_URL` (= mcpserver.fastapicloud.dev)
+  and `chart_pick_agent(query)` — keyword if-else router ("dashboard"/"sales"/"revenue" → chart
+  agent, else restaurant `AGENT_URL`). `ask_agent` now resolves `agent_url = chart_pick_agent(query)`
+  and uses it for the resolver base_url + card url override. Import + routing verified; deployed.
+- Client `App.tsx`: removed the `chart_devDashboard` page-load injection (commented out); clean
+  `processor` useMemo restored. `tsc -b` clean.
+- First real LLM generation of the dashboard VERIFIED valid in-browser (the complete-3-msg few-shot
+  held; no malformed-JSON retry needed in practice).
+
+**Possible NEXT (Stage C — only if user wants):**
+- Delete throwaway `a2ui_react/src/chart_catalog/chart_devDashboard.ts` (unimported) + the commented
+  dead lines in `App.tsx`; commit the client cleanup.
+- Upgrade routing: replace the keyword if-else with an LLM intent-router — belongs AGENT-SIDE (keep
+  the gateway dumb per §0.5), not bolted into the gateway. (User discussed this; chose if-else for now.)
+- Q1–Q4 Tabs · chart drill-down · theming/dark-mode · Snowflake data tool · AgentCore + Gateway MCP.
+
+--- prior handover (superseded; kept for history) ---
 
 **Topology decided (user):** BRAND-NEW separate agent `b:\a2ui2\chart_agent` (NOT extending
 a2ui_agent). Clone of a2ui_agent's architecture.

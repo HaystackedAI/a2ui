@@ -138,3 +138,49 @@ browser a2ui_react (:5173)
       → agent a2ui-agent.fastapicloud.dev        (Strands + Groq gpt-oss-120b, A2A SERVER)
          → A2UI JSON → SSE → rendered
 search → list → book → form → submit → confirm, all LLM-generated. Target met.
+
+
+
+WHY A2UI is here at all
+
+The whole point: the agent (an LLM) decides what dashboard to show, but it never sends code — it sends declarative JSON. The browser renders that JSON using only components it already trusts. So an LLM can compose "4 KPI tiles + a doughnut + a bar chart + a table" without ever being able to inject arbitrary markup/script into your page. That safe-UI-across-a-trust-boundary is exactly what A2UI solves, and it's why it's worth the ceremony for an LLM-driven dashboard.
+
+WHERE it's used — three seams
+
+1. The catalog (the shared contract) — a2ui_react/src/chart_catalog/chart_catalog.ts
+A2UI calls the agreed component vocabulary a catalog. We took A2UI's basicCatalog (Column/Row/Card/Text/List…) and built our own on top:
+new Catalog(chart_SALES_CATALOG_ID,
+  basicCatalog.protocolVersion,
+  [...basicCatalog.components.values(), chart_StatTile, chart_Chart, chart_DataTable],
+  ...)
+A surface names exactly one catalogId, and the dashboard needs both basic layout and our custom charts — so they merge into one catalog under our own id (https://haystackedai.com/a2ui/catalogs/sales/v0_9/catalog.json). Both sides must agree on this id: the agent's createSurface.catalogId byte-matches it, which is how the client knows "StatTile"/"Chart" are legal here.
+
+2. The custom components (client half of the contract) — chart_Chart.tsx, chart_StatTile.tsx, chart_DataTable.tsx
+Each is registered with createComponentImplementation(api, view) where api is a Zod schema describing the props the agent may send:
+chart_ChartApi = { name: 'Chart', schema: z.object({
+  type: z.enum(['doughnut','bar']),      // literal enum, never bound
+  title: DynamicStringSchema.optional(),
+  chartData: z.union([z.array(item), DataBindingSchema]), // literal OR {path}
+})}
+The schema is the gatekeeper — if the LLM sends something off-contract, A2UI rejects it rather than rendering garbage. The view is plain React (Recharts). "Chart" is one component that branches internally on props.type → PieChart vs BarChart.
+
+3. The messages (what the agent emits) — chart_agent/examples/v0_9/chart_sales_dashboard.json
+This is A2UI's 3-message protocol, and the file is the LLM's few-shot example of it:
+
+- createSurface — "start a surface, using this catalog."
+- updateComponents — the component tree, as a flat list referenced by id. Pure layout, no values. Note it uses the List+template pattern: kpis List stamps kpi-tpl (a StatTile) once per item in /kpis.
+- updateDataModel — the data, kept entirely separate from layout.
+
+HOW layout and data meet — data binding
+
+The key A2UI idea the chart part leans on: components don't contain their values; they point at them. In the tree you see "chartData": { "path": "/revenueByRegion" } and "text": { "path": "/title" }. Those {path} bindings are resolved by A2UI's binder against the data model, then handed to your React props already-resolved. That's why chart_Chart's view just reads props.chartData as a plain array:
+const raw = Array.isArray(props.chartData) ? props.chartData : []
+Two binding flavors in play:
+- Absolute (/title, /revenueByRegion) — from the data root.
+- Relative (inside the kpi-tpl template: {path:'title'}, {path:'trend'}) — relative to the current list item, so one StatTile definition renders all four KPIs.
+
+The payoff of that separation
+
+Because layout and data are decoupled, the same component tree can be re-driven with new data by sending only a fresh updateDataModel — e.g. a future "Q2" tab wouldn't resend the whole dashboard, just the numbers. And the LLM's job shrinks to "emit valid JSON matching the catalog," which the Zod schemas + the complete 3-message example keep honest (that's what fixed the earlier confirmation bug).
+
+So in one line: A2UI is the contract that lets the LLM agent describe a dashboard as safe declarative JSON (catalog + 3 messages + path-bindings), which your Recharts components render — the agent chooses the UI, the client controls how it's drawn.
