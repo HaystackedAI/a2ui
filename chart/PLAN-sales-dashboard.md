@@ -193,4 +193,57 @@ theming/dark-mode · Snowflake data tool · AgentCore + Gateway MCP (the long-te
 ## STATUS
 - [x] A1 recharts  [x] A2 seam  [x] A3 StatTile  [x] A4 KPIs render  [x] A5 doughnut
   [x] A6 bar  [x] A7 full dashboard (user-confirmed visually) — STAGE A (renderer) DONE
-- [ ] B1 schema  [ ] B2 tool  [ ] B3 example  [ ] B4 prompt  [ ] B5 brain  [ ] B6 deploy+verify
+- [x] B1 pyproject deps + uv.lock  [x] B2 data (chart_sales.py)  [x] B3 tool (chart_get_sales_data)
+  [x] B4 few-shot example  [x] B5 prompt  [x] B6 brain  [x] B7 __init__  [x] B8 main (A2AServer)
+  [x] DEPLOYED (agent card healthy)  [ ] B9 skipped-local  [ ] **B10 gateway wiring + browser test (NEXT)**
+
+---
+
+## 🫱 HANDOVER — RESUME HERE (session paused 2026-10-03)
+
+**Where we are:** Full Sales-Dashboard RENDERER done (Stage A, user-confirmed). The chart AGENT
+(`chart_agent`) is BUILT as a brand-new standalone project and DEPLOYED; its A2A agent card is live.
+NOT yet verified end-to-end (generation untested) and NOT yet wired into the gateway.
+
+**Topology decided (user):** BRAND-NEW separate agent `b:\a2ui2\chart_agent` (NOT extending
+a2ui_agent). Clone of a2ui_agent's architecture.
+
+**Done & verified:**
+- STAGE A (client `a2ui_react/src/chart_catalog/`): `chart_constants.ts`
+  (`chart_SALES_CATALOG_ID` = `https://haystackedai.com/a2ui/catalogs/sales/v0_9/catalog.json`),
+  `chart_StatTile.tsx`, `chart_Chart.tsx` (one Chart, `type` doughnut|bar, Recharts),
+  `chart_DataTable.tsx` (status badges good/warn/crit), `chart_catalog.ts`
+  (`chart_salesCatalog` = basics + 3 custom), `chart_devDashboard.ts` (hardcoded 3-msg surface,
+  THROWAWAY). `App.tsx`: `MessageProcessor([basicCatalog, chart_salesCatalog])` + processes
+  `chart_devDashboardMessages` on load (DEV/throwaway — REMOVE at cleanup). recharts installed;
+  **zod pinned 3.25.76 as a DIRECT dep** (fixed the v4-at-top-level trap). dataviz palette applied.
+  Binder confirmed to resolve `{path}`→whole array for chartData.
+- STAGE B (`b:\a2ui2\chart_agent`, standalone clone of a2ui_agent): `pyproject.toml`
+  (a2a-sdk, fastapi[standard], openai, strands-agents[a2a]) + `uv.lock`; `datasource/chart_sales.py`
+  (`chart_SALES`, keys match client bindings); `agent/tools.py` (`chart_get_sales_data`, no args);
+  `examples/v0_9/chart_sales_dashboard.json` (complete 3-msg screen, catalogId byte-matches client);
+  `agent/prompt.py`; `agent/brain.py` (Groq `openai/gpt-oss-120b`); `agent/__init__.py`;
+  `main.py` (A2AServer, serve_at_root). **DEPLOYED → https://mcpserver.fastapicloud.dev**
+  (FastAPI Cloud; app/host is "mcpserver"). Agent card verified live: name `chart_agent`, skill
+  `chart_get_sales_data`, streaming, `url` = real deployed URL (AGENT_PUBLIC_URL set), root `/`→405
+  (POST-only). GROQ_API_KEY secret presumed set (card boots). config.ts:
+  `A2UI_CHART_AGENT='https://mcpserver.fastapicloud.dev'`.
+
+**NEXT ACTION (B10) — wire the gateway, then browser-test:**
+The gateway `a2ui_fastapi/agent_client.py` has `AGENT_URL = "https://a2ui-agent.fastapicloud.dev"`
+(restaurant). The browser → gateway → agent, and the client NEEDS the gateway (it translates A2A
+text parts → browser SSE `{kind:'data'}`; client can't talk A2A directly). To render the dashboard:
+point the gateway at the chart agent. DECISION PENDING: (a) change `AGENT_URL` to
+`https://mcpserver.fastapicloud.dev` (simplest; breaks restaurant), or (b) make it env/route-based.
+`ask_agent._find_ui_text` keys off a part `text` containing `"createSurface"` — chart agent emits
+the same shape, so it should work unchanged. After wiring: redeploy gateway (git push), then in
+browser query e.g. "sales dashboard" → expect the full dashboard. Then CLEANUP: remove the
+`chart_devDashboard` injection from `App.tsx` so queries (not page-load) drive it.
+
+**TESTING CONSTRAINT:** this session's Bash sandbox has NO external network (`curl` → HTTP 000 even
+to known URLs). Use `WebFetch` (GET only) to check deployed endpoints, or have the user run a `!`
+curl for POST/message-stream tests. Do NOT run the agent locally (user directive: test deployed only).
+
+**Open risks for B10:** LLM routing/output validity is untested (first real generation). If the
+dashboard JSON is malformed, brain.py has 1 retry; the complete-3-msg example should keep it valid
+(restaurant confirmation-bug lesson). Watch that `updateDataModel.value` keys match client paths.

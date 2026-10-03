@@ -7,6 +7,15 @@
 > online, it says so. Re-verify via the live docs/npm if something looks stale.
 >
 > Last updated: 2026-10-02 (model: Opus 4.8). Spec target: A2UI **v0.9**.
+>
+> ⭐ **ACTIVE WORK (2026-10-03): the SALES-DASHBOARD / charts project.** This is the real AWS-track
+> build (custom catalog + Chart renderer + sales agent). Its own self-contained plan + handover live
+> in **`b:\a2ui2\chart\PLAN-sales-dashboard.md`** (RESUME-HERE section) and research in
+> `b:\a2ui2\chart\RESEARCH-chart-renderer.md`. Status: renderer DONE (a2ui_react/src/chart_catalog/,
+> all chart_-prefixed per [[chart-naming-convention]]); new standalone agent `b:\a2ui2\chart_agent`
+> DEPLOYED at https://mcpserver.fastapicloud.dev (card live). NEXT = wire gateway a2ui_fastapi →
+> chart agent + browser-test. **Read the chart PLAN first for this work.** The restaurant handover
+> below is the PRIOR milestone (done).
 
 ---
 
