@@ -7,3 +7,4 @@
 export const A2A_URL = 'https://a2ui-backend.fastapicloud.dev/a2a'
 export const A2UI_AGENT_URL = 'https://a2ui-agent.fastapicloud.dev'
 export const A2UI_FASTAPI_URL = 'https://a2ui-backend.fastapicloud.dev'
+export const A2UI_CHART_AGENT = 'https://mcpserver.fastapicloud.dev'
